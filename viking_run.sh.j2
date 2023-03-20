@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --time={{ time_allot }}
+#SBATCH --ntasks={{ ntasks | default("1", true) }}
+#SBATCH --cpus-per-task={{ cpus_pt }}
+#SBATCH --mem={{ mem }}
+#SBATCH --partition={{ partition }}
+{{ extra_opts }}
+set -euxo pipefail
+
+module load {{ module }}
+{{ build_cmd }}
+time sh -c '{{ run_cmd }}'

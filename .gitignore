@@ -1,0 +1,12 @@
+*/obj
+*/vortex
+**.vtk
+*.data
+*.data.old
+*diffs.txt
+.env
+**scorep*
+**.input.*
+*_flame.svg
+*.csv
+tool
