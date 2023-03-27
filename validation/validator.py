@@ -1,5 +1,6 @@
 import sys
 import re
+from math import sqrt
 
 TOLERANCE = 0.02
 
@@ -21,7 +22,13 @@ def compare_lines(l1, l2, stats_dict):
                 stats_dict["CLOSE"] += 1
             else:
                 stats_dict["WRONG"] += 1
+
             stats_dict["TOTAL"] += 1
+            stats_dict["DOT_PROD"] += num1 * num2
+            stats_dict["SUM_SQUARES_A"] += num1 * num1
+            stats_dict["SUM_SQUARES_B"] += num2 * num2
+
+            
         
         # If one of the files contains a number in this position and the other doesn't, raise an error.
         elif (is_num_str(l1[i]) and not is_num_str(l2[i])) or (is_num_str(l2[i]) and not is_num_str(l1[i])):
@@ -31,18 +38,24 @@ def compare_lines(l1, l2, stats_dict):
 
 
 def compare_files(f1, f2):
-    stats_dict = {"WRONG":0, "CLOSE":0, "EXACT":0, "TOTAL":0}
+    stats_dict = {"WRONG":0, "CLOSE":0, "EXACT":0, "TOTAL":0, "DOT_PROD":0, "SUM_SQUARES_A": 0, "SUM_SQUARES_B":0}
 
     with open(f1) as file1:
         with open(f2) as file2:
             for line1, line2 in zip(file1, file2):
                 compare_lines(line1, line2, stats_dict)
+    
+    cosine_similarity = stats_dict["DOT_PROD"] / (sqrt(stats_dict["SUM_SQUARES_A"]) * sqrt(stats_dict["SUM_SQUARES_B"]))
 
     print("-----------------------------------------------")
     print(f"Comparing original implementation ({VTK_1}) to parallel implementation ({VTK_2}):\n")
     for label in ["WRONG", "CLOSE", "EXACT"]:
         print(f"{label}: {stats_dict[label]}/{stats_dict['TOTAL']} - {100.0 * stats_dict[label]/stats_dict['TOTAL']:.4f}%")
-    print(f"\nNote: Close values are determined using a tolerance value of {TOLERANCE}. Percentages are calculated to 4 decimal places.")
+    
+    print(f"\nNote: Close values are determined using a tolerance value of {TOLERANCE}. Percentages are calculated to 4 decimal places.\n")
+
+    print(f"Cosine Similarity: {cosine_similarity * 100}")
+
     print("-----------------------------------------------")
 
 if len(sys.argv) == 3:
