@@ -78,7 +78,7 @@ clean *targets=TARGETS:
         do (cd $target && make clean); \
     done
     find -iname "*.csv" -exec rm -v {} \;
-    find -iname "*.vtk" -exec rm -v {} \;
+    find -iname "*.vtk" -and -not -ipath "*/validation/*" -exec rm -v {} \;
     find -iname "*perf.data*" -exec rm -v {} \;
     find -iname "*.svg" -exec rm -v {} \;
     find -iname "*diffs.txt" -exec rm -rv {} \;

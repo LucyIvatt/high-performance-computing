@@ -5,12 +5,21 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <time.h>
 
 #include "data.h"
 #include "vtk.h"
 #include "setup.h"
 #include "boundary.h"
 #include "args.h"
+
+struct timespec timer;
+
+double get_time()
+{
+    clock_gettime(CLOCK_MONOTONIC, &timer);
+    return (double)(timer.tv_sec + timer.tv_nsec / 1000000000.0);
+}
 
 /**
  * @brief Computation of tentative velocity field (f, g)
