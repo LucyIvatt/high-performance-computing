@@ -27,6 +27,8 @@ LAB_DEST := "hipc_source"
 YORK_USER := env_var("YORK_USER")
 export SSHPASS := env_var("YORK_PASS")
 
+export OMP_NUM_THREADS := 5
+
 # Build a target
 build target *make_args="": (clean target)
     (cd {{ target }} && make {{ make_args }})
@@ -83,9 +85,9 @@ clean *targets=TARGETS:
     find -iname "*.svg" -exec rm -v {} \;
     find -iname "*diffs.txt" -exec rm -rv {} \;
     -for target in {{ replace(targets, "viking", "") }}; do \
-        cd $target && \
+        ( cd $target && \
         find -iname "scorep*" -exec rm -rfv {} \; && \
-        find -iname "vortex*input*" -exec rm -rfv {} \; ; \
+        find -iname "vortex*input*" -exec rm -rfv {} \; ); \
     done
     find -maxdepth 1 -iname "scorep*" -exec rm -rfv {} \;
 alias c := clean

@@ -15,7 +15,7 @@ char result_filename[1024];
  */
 void set_default_base()
 {
-    set_basename("openmp/vortex");
+    set_basename("openmp/openmp_vortex");
 }
 
 /**

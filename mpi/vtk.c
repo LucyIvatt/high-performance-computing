@@ -15,7 +15,7 @@ char result_filename[1024];
  */
 void set_default_base()
 {
-    set_basename("mpi/vortex");
+    set_basename("mpi/mpi_vortex");
 }
 
 /**
