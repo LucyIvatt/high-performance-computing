@@ -27,7 +27,7 @@ LAB_DEST := "hipc_source"
 YORK_USER := env_var("YORK_USER")
 export SSHPASS := env_var("YORK_PASS")
 
-export OMP_NUM_THREADS := 5
+export OMP_NUM_THREADS := "5"
 
 # Build a target
 build target *make_args="": (clean target)
