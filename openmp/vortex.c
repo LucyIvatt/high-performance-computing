@@ -28,6 +28,7 @@ double get_time()
  */
 void compute_tentative_velocity()
 {
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < imax; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -55,7 +56,9 @@ void compute_tentative_velocity()
                 f[i][j] = u[i][j];
             }
         }
-    }
+    } 
+
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax; j++)
@@ -86,11 +89,14 @@ void compute_tentative_velocity()
     }
 
     /* f & g at external boundaries */
+    #pragma omp parallel for
     for (int j = 1; j < jmax + 1; j++)
     {
         f[0][j] = u[0][j];
         f[imax][j] = u[imax][j];
     }
+
+    #pragma omp parallel for
     for (int i = 1; i < imax + 1; i++)
     {
         g[i][0] = v[i][0];
@@ -104,6 +110,7 @@ void compute_tentative_velocity()
  */
 void compute_rhs()
 {
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -158,6 +165,7 @@ double poisson()
 
     for (iter = 0; iter < itermax; iter++)
     {
+        
         for (int rb = 0; rb < 2; rb++)
         {
             #pragma omp parallel for collapse(2)
@@ -234,6 +242,7 @@ double poisson()
  */
 void update_velocity()
 {
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < imax - 2; i++)
     {
         for (int j = 1; j < jmax - 1; j++)
@@ -246,6 +255,7 @@ void update_velocity()
         }
     }
 
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < imax - 1; i++)
     {
         for (int j = 1; j < jmax - 2; j++)
@@ -271,6 +281,7 @@ void set_timestep_interval()
         double umax = 1.0e-10;
         double vmax = 1.0e-10;
 
+        #pragma omp parallel for collapse(2) reduction(max:umax)
         for (int i = 0; i < imax + 2; i++)
         {
             for (int j = 1; j < jmax + 2; j++)
@@ -279,6 +290,7 @@ void set_timestep_interval()
             }
         }
 
+        #pragma omp parallel for collapse(2) reduction(max:vmax)
         for (int i = 1; i < imax + 2; i++)
         {
             for (int j = 0; j < jmax + 2; j++)
@@ -316,12 +328,14 @@ int main(int argc, char *argv[])
     double total_time = get_time();
     double setup_time = get_time();
 
+    double timestep_time = 0;
     double tentative_velocity_time = 0;
     double rhs_time = 0;
     double poisson_time = 0;
     double update_velocity_time = 0;
     double apply_boundary_conditions_time = 0;
 
+    double timestep_start;
     double tentative_velocity_start;
     double rhs_start;
     double poisson_start;
@@ -347,8 +361,10 @@ int main(int argc, char *argv[])
     double t;
     for (t = 0.0; t < t_end; t += del_t, iters++)
     {
+        timestep_start = get_time();
         if (!fixed_dt)
             set_timestep_interval();
+        timestep_time += get_time() - timestep_start;
 
         tentative_velocity_start = get_time();
         compute_tentative_velocity();
@@ -386,6 +402,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Timing Summary\n");
     fprintf(stderr, " Setup Time: %lf\n", setup_time);
+    fprintf(stderr, " Timestep Time: %lf\n", timestep_time);
     fprintf(stderr, " Tenatative Velocity Time: %lf\n", tentative_velocity_time);
     fprintf(stderr, " RHS Time: %lf\n", rhs_time);
     fprintf(stderr, " Poisson Time: %lf\n", poisson_time);

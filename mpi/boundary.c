@@ -8,6 +8,7 @@
  */
 void apply_boundary_conditions()
 {
+    #pragma parallel for
     for (int j = 0; j < jmax + 2; j++)
     {
         /* Fluid freely flows in from the west */
@@ -19,6 +20,7 @@ void apply_boundary_conditions()
         v[imax + 1][j] = v[imax][j];
     }
 
+    #pragma parallel for
     for (int i = 0; i < imax + 2; i++)
     {
         /* The vertical velocity approaches 0 at the north and south
@@ -34,6 +36,8 @@ void apply_boundary_conditions()
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
+
+    # pragma parallel for collapse(2)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
