@@ -51,12 +51,12 @@ char **flag;
  * @param n The second dimension of the array
  * @return double** A 2D array
  */
-__global__ double **alloc_2d_array(int m, int n)
+double **alloc_2d_array(int m, int n)
 {
 	double** x;
 
 	cudaMalloc(&x, m * sizeof(double *));
-	cudaMalloc(&(x[0]), m * n * sizeof(double));
+	cudaMemset(&(x[0]), 0, m * n * sizeof(double));
 	
 	for (int i = 1; i < m; i++)
 		x[i] = &x[0][i * n];
@@ -76,8 +76,9 @@ char **alloc_2d_char_array(int m, int n)
 	char **x;
 	int i;
 
-	x = (char **)malloc(m * sizeof(char *));
-	x[0] = (char *)calloc(m * n, sizeof(char));
+	cudaMalloc(&x, m * sizeof(char *));
+	cudaMemset(&(x[0]), 0, m * n * sizeof(char));
+
 	for (i = 1; i < m; i++)
 		x[i] = &x[0][i * n];
 	return x;
@@ -90,6 +91,6 @@ char **alloc_2d_char_array(int m, int n)
  */
 void free_2d_array(void **array)
 {
-	free(array[0]);
-	free(array);
+	cudaFree(array[0]);
+	cudaFree(array);
 }
