@@ -54,9 +54,15 @@ extern char **flag;
 
 double **alloc_2d_array(int m, int n);
 char **alloc_2d_char_array(int m, int n);
-char **copy_char_array_to_device(int m, int n, char **src);
-double **copy_double_array_to_device(int m, int n, double **src);
+void copy_char_array_to_device(char** host, char** device, int m, int n);
+void copy_double_array_to_device(double** host, double** device, int m, int n);
 void free_2d_array_device(void **array);
 void free_2d_array_host(void **array);
+
+struct Array2D {
+    double* data;
+    int width;
+    int height;
+}
 
 #endif

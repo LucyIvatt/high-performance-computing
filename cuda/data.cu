@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
+#include <cuda.h>
 
 #include "vtk.h"
 #include "data.h"
@@ -31,6 +32,8 @@ int fluid_cells = 0;
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
 double **u;
+struct Array2D u_host;
+struct Array2D u_dev;
 int v_size_x, v_size_y;
 double **v;
 int p_size_x, p_size_y;
@@ -83,61 +86,44 @@ char **alloc_2d_char_array(int m, int n)
 }
 
 /**
- * @brief Allocate a 2D array that is addressable using square brackets
- *
- * @param m The first dimension of the array
- * @param n The second dimension of the array
- * @return double** A 2D array
  */
-double **alloc_2d_array_cuda(int m, int n)
+double **copy_2d_array_to_device(double **host, int m, int n)
 {
-	double** x;
+	int i;
+    double *device_data;
+    double **device_indicies;
+    size_t array_bytes = m * n *sizeof(double);
 
-	cudaMalloc(&x, m * sizeof(double *));
-	cudaMemset(&(x[0]), 0, m * n * sizeof(double));
-	
-	for (int i = 1; i < m; i++)
+    cudaMalloc(&device_data, array_bytes);
+
+    cudaMemcpy(device_data, host[0], array_bytes, cudaMemcpyHostToDevice);
+
+	cudaMalloc(&device_indicies, m * sizeof(double *));
+	device_indicies[0] = device_data;
+	for (i = 1; i < m; i++)
+		device_indicies[i] = &device_indicies[0][i * n];
+	return device_indicies;
+}
+
+/**
+ */
+void copy_2d_array_to_host(double **device, double** host, int m, int n)
+{
+    size_t array_bytes = m * n *sizeof(double);
+    cudaMemcpy(device[0], host[0], array_bytes, cudaMemcpyDeviceToHost);
+}
+
+/**
+ */
+char **copy_2d_char_array_to_device(double **array,int m, int n)
+{
+	int i;
+
+	x = (char **)malloc(m * sizeof(char *));
+	x[0] = (char *)calloc(m * n, sizeof(char));
+	for (i = 1; i < m; i++)
 		x[i] = &x[0][i * n];
-
 	return x;
-}
-
-/**
- * @brief Allocate a 2D char array that is addressable using square brackets
- *
- * @param m The first dimension of the array
- * @param n The second dimension of the array
- * @return char** A 2D array
- */
-char **copy_char_array_to_device(int m, int n, char **src)
-{
-	char **dest;
-
-	cudaMalloc((void **) &dest, m * sizeof(char *));
-	cudaMalloc((void **) &dest[0], m * n * sizeof(char));
-
-	cudaMemcpy(dest[0], src[0], m * n * sizeof(char), cudaMemcpyHostToDevice);
-	cudaMemcpy(dest, src, m * sizeof(char *), cudaMemcpyHostToDevice);
-	return dest;
-}
-
-/**
- * @brief Allocate a 2D char array that is addressable using square brackets
- *
- * @param m The first dimension of the array
- * @param n The second dimension of the array
- * @return char** A 2D array
- */
-double **copy_double_array_to_device(int m, int n, double **src)
-{
-	double **dest;
-
-	cudaMalloc((void **) &dest, m * sizeof(double *));
-	cudaMalloc((void **) &dest[0], m * n * sizeof(double));
-
-	cudaMemcpy(dest[0], src[0], m * n * sizeof(double), cudaMemcpyHostToDevice);
-	cudaMemcpy(dest, src, m * sizeof(double *), cudaMemcpyHostToDevice);
-	return dest;
 }
 
 /**

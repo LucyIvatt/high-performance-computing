@@ -188,6 +188,8 @@ double poisson()
             }
         }
 
+
+
         /* computation of residual */
         for (int i = 1; i < imax + 1; i++)
         {
@@ -221,6 +223,8 @@ double poisson()
 
     return res;
 }
+
+__global__ void residual_reduction_kernel(){}
 
 /**
  * @brief Update the velocity values based on the tentative
@@ -353,6 +357,13 @@ int main(int argc, char *argv[])
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
+
+        char **d_flag;
+        double **d_p, **d_rhs;
+        copy_char_array_to_device(flag, d_flag, f_size_x, f_size_y);
+        copy_double_array_to_device(p, d_p, p_size_x, p_size_y);
+        copy_double_array_to_device(rhs, d_rhs, rhs_size_x, rhs_size_y);
+
         res = poisson();
         poisson_time += get_time() - poisson_start;
 
