@@ -54,6 +54,9 @@ extern char **flag;
 
 double **alloc_2d_array(int m, int n);
 char **alloc_2d_char_array(int m, int n);
-void free_2d_array(void **array);
+char **copy_char_array_to_device(int m, int n, char **src);
+double **copy_double_array_to_device(int m, int n, double **src);
+void free_2d_array_device(void **array);
+void free_2d_array_host(void **array);
 
 #endif

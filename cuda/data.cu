@@ -53,6 +53,44 @@ char **flag;
  */
 double **alloc_2d_array(int m, int n)
 {
+	double **x;
+	int i;
+
+	x = (double **)malloc(m * sizeof(double *));
+	x[0] = (double *)calloc(m * n, sizeof(double));
+	for (i = 1; i < m; i++)
+		x[i] = &x[0][i * n];
+	return x;
+}
+
+/**
+ * @brief Allocate a 2D char array that is addressable using square brackets
+ *
+ * @param m The first dimension of the array
+ * @param n The second dimension of the array
+ * @return char** A 2D array
+ */
+char **alloc_2d_char_array(int m, int n)
+{
+	char **x;
+	int i;
+
+	x = (char **)malloc(m * sizeof(char *));
+	x[0] = (char *)calloc(m * n, sizeof(char));
+	for (i = 1; i < m; i++)
+		x[i] = &x[0][i * n];
+	return x;
+}
+
+/**
+ * @brief Allocate a 2D array that is addressable using square brackets
+ *
+ * @param m The first dimension of the array
+ * @param n The second dimension of the array
+ * @return double** A 2D array
+ */
+double **alloc_2d_array_cuda(int m, int n)
+{
 	double** x;
 
 	cudaMalloc(&x, m * sizeof(double *));
@@ -71,17 +109,35 @@ double **alloc_2d_array(int m, int n)
  * @param n The second dimension of the array
  * @return char** A 2D array
  */
-char **alloc_2d_char_array(int m, int n)
+char **copy_char_array_to_device(int m, int n, char **src)
 {
-	char **x;
-	int i;
+	char **dest;
 
-	cudaMalloc(&x, m * sizeof(char *));
-	cudaMemset(&(x[0]), 0, m * n * sizeof(char));
+	cudaMalloc((void **) &dest, m * sizeof(char *));
+	cudaMalloc((void **) &dest[0], m * n * sizeof(char));
 
-	for (i = 1; i < m; i++)
-		x[i] = &x[0][i * n];
-	return x;
+	cudaMemcpy(dest[0], src[0], m * n * sizeof(char), cudaMemcpyHostToDevice);
+	cudaMemcpy(dest, src, m * sizeof(char *), cudaMemcpyHostToDevice);
+	return dest;
+}
+
+/**
+ * @brief Allocate a 2D char array that is addressable using square brackets
+ *
+ * @param m The first dimension of the array
+ * @param n The second dimension of the array
+ * @return char** A 2D array
+ */
+double **copy_double_array_to_device(int m, int n, double **src)
+{
+	double **dest;
+
+	cudaMalloc((void **) &dest, m * sizeof(double *));
+	cudaMalloc((void **) &dest[0], m * n * sizeof(double));
+
+	cudaMemcpy(dest[0], src[0], m * n * sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(dest, src, m * sizeof(double *), cudaMemcpyHostToDevice);
+	return dest;
 }
 
 /**
@@ -89,8 +145,20 @@ char **alloc_2d_char_array(int m, int n)
  *
  * @param array The 2D array to free
  */
-void free_2d_array(void **array)
+void free_2d_array_device(void **array)
 {
 	cudaFree(array[0]);
 	cudaFree(array);
 }
+
+/**
+ * @brief Free a 2D array
+ *
+ * @param array The 2D array to free
+ */
+void free_2d_array_host(void **array)
+{
+	free(array[0]);
+	free(array);
+}
+

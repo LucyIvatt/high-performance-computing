@@ -66,13 +66,13 @@ void allocate_arrays()
  */
 void free_arrays()
 {
-    free_2d_array((void **)u);
-    free_2d_array((void **)v);
-    free_2d_array((void **)f);
-    free_2d_array((void **)g);
-    free_2d_array((void **)p);
-    free_2d_array((void **)rhs);
-    free_2d_array((void **)flag);
+    free_2d_array_host((void **)u);
+    free_2d_array_host((void **)v);
+    free_2d_array_host((void **)f);
+    free_2d_array_host((void **)g);
+    free_2d_array_host((void **)p);
+    free_2d_array_host((void **)rhs);
+    free_2d_array_host((void **)flag);
 }
 
 /**
