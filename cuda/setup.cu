@@ -34,24 +34,44 @@ void allocate_arrays()
     u_size_x = imax + 2;
     u_size_y = jmax + 2;
     u = alloc_2d_array(u_size_x, u_size_y);
+    u_array = {.array=u, .size_x=u_size_x, .size_y=u_size_y};
+
+
     v_size_x = imax + 2;
     v_size_y = jmax + 2;
     v = alloc_2d_array(v_size_x, v_size_y);
+    v_array = {.array=v, .size_x=v_size_x, .size_y=v_size_y};
+
+
     f_size_x = imax + 2;
     f_size_y = jmax + 2;
     f = alloc_2d_array(f_size_x, f_size_y);
+    f_array = {.array=f, .size_x=f_size_x, .size_y=f_size_y};
+
+
     g_size_x = imax + 2;
     g_size_y = jmax + 2;
     g = alloc_2d_array(g_size_x, g_size_y);
+    g_array = {.array=g, .size_x=g_size_x, .size_y=g_size_y};
+
+
     p_size_x = imax + 2;
     p_size_y = jmax + 2;
     p = alloc_2d_array(p_size_x, p_size_y);
+    p_array = {.array=p, .size_x=p_size_x, .size_y=p_size_y};
+
+
     rhs_size_x = imax + 2;
     rhs_size_y = jmax + 2;
     rhs = alloc_2d_array(rhs_size_x, rhs_size_y);
+    rhs_array = {.array=rhs, .size_x=rhs_size_x, .size_y=rhs_size_y};
+
+
     flag_size_x = imax + 2;
     flag_size_y = jmax + 2;
     flag = alloc_2d_char_array(flag_size_x, flag_size_y);
+    flag_array = {.array=flag, .size_x=flag_size_x, .size_y=flag_size_y};
+
 
     if (!u || !v || !f || !g || !p || !rhs || !flag)
     {

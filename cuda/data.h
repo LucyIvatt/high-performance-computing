@@ -37,23 +37,43 @@ extern int fluid_cells;
 extern double delx, dely;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-extern int u_size_x, u_size_y;
-extern double **u;
-extern int v_size_x, v_size_y;
-extern double **v;
-extern int p_size_x, p_size_y;
-extern double **p;
-extern int rhs_size_x, rhs_size_y;
-extern double **rhs;
-extern int f_size_x, f_size_y;
-extern double **f;
-extern int g_size_x, g_size_y;
-extern double **g;
-extern int flag_size_x, flag_size_y;
-extern char **flag;
+struct Array2D {
+    double* array;
+    int size_x;
+    int size_y;
+};
 
-double **alloc_2d_array(int m, int n);
-char **alloc_2d_char_array(int m, int n);
+extern int u_size_x, u_size_y;
+extern double *u;
+extern struct Array2D u_array;
+
+extern int v_size_x, v_size_y;
+extern double *v;
+extern struct Array2D v_array;
+
+extern int p_size_x, p_size_y;
+extern double *p;
+extern struct Array2D p_array;
+
+extern int rhs_size_x, rhs_size_y;
+extern double *rhs;
+extern struct Array2D rhs_array;
+
+extern int f_size_x, f_size_y;
+extern double *f;
+extern struct Array2D f_array;
+
+extern int g_size_x, g_size_y;
+extern double *g;
+extern struct Array2D g_array;
+
+extern int flag_size_x, flag_size_y;
+extern char *flag;
+extern struct Array2D flag_array;
+
+
+double *alloc_2d_array(int m, int n);
+char *alloc_2d_char_array(int m, int n);
 char **copy_char_array_to_device(int m, int n, char **src);
 double **copy_double_array_to_device(int m, int n, double **src);
 void free_2d_array_device(void **array);
