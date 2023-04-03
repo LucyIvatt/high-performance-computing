@@ -35,38 +35,45 @@ void allocate_arrays()
     u_size_x = imax + 2;
     u_size_y = jmax + 2;
     u_h = alloc_2d_double_array(u_size_x, u_size_y);
-    DoubleArray2D u_h_array = {.data=u_h, .size_x=u_size_x, .size_y=u_size_y};
+    u_h_array = {.data=u_h, .size_x=u_size_x, .size_y=u_size_y};
+    
 
     v_size_x = imax + 2;
     v_size_y = jmax + 2;
     v_h = alloc_2d_double_array(v_size_x, v_size_y);
-    DoubleArray2D v_h_array = {.data=v_h, .size_x=v_size_x, .size_y=v_size_y};
+    v_h_array = {.data=v_h, .size_x=v_size_x, .size_y=v_size_y};
+   
 
     f_size_x = imax + 2;
     f_size_y = jmax + 2;
     f_h = alloc_2d_double_array(f_size_x, f_size_y);
-    DoubleArray2D f_h_array = {.data=f_h, .size_x=f_size_x, .size_y=f_size_y};
+    f_h_array = {.data=f_h, .size_x=f_size_x, .size_y=f_size_y};
+  
 
     g_size_x = imax + 2;
     g_size_y = jmax + 2;
     g_h = alloc_2d_double_array(g_size_x, g_size_y);
-    DoubleArray2D g_h_array = {.data=g_h, .size_x=g_size_x, .size_y=g_size_y};
+    g_h_array = {.data=g_h, .size_x=g_size_x, .size_y=g_size_y};
+    
 
     p_size_x = imax + 2;
     p_size_y = jmax + 2;
     p_h = alloc_2d_double_array(p_size_x, p_size_y);
-    DoubleArray2D p_h_array = {.data=p_h, .size_x=p_size_x, .size_y=p_size_y};
+    p_h_array = {.data=p_h, .size_x=p_size_x, .size_y=p_size_y};
+
 
     rhs_size_x = imax + 2;
     rhs_size_y = jmax + 2;
     rhs_h = alloc_2d_double_array(rhs_size_x, rhs_size_y);
-    DoubleArray2D rhs_h_array = {.data=rhs_h, .size_x=rhs_size_x, .size_y=rhs_size_y};
+    rhs_h_array = {.data=rhs_h, .size_x=rhs_size_x, .size_y=rhs_size_y};
+    
 
 
     flag_size_x = imax + 2;
     flag_size_y = jmax + 2;
     flag_h = alloc_2d_char_array(flag_size_x, flag_size_y);
-    CharArray2D flag_h_array = {.data=flag_h, .size_x=flag_size_x, .size_y=flag_size_y};
+    flag_h_array = {.data=flag_h, .size_x=flag_size_x, .size_y=flag_size_y};
+    
 
 
     if (!u_h || !v_h || !f_h || !g_h || !p_h || !rhs_h || !flag_h)
