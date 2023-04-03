@@ -89,13 +89,13 @@ void allocate_arrays()
  */
 void free_arrays()
 {
-    free_2d_array_host((void **)u_h);
-    free_2d_array_host((void **)v_h);
-    free_2d_array_host((void **)f_h);
-    free_2d_array_host((void **)g_h);
-    free_2d_array_host((void **)p_h);
-    free_2d_array_host((void **)rhs_h);
-    free_2d_array_host((void **)flag_h);
+    free_2d_array_host((void *)u_h);
+    free_2d_array_host((void *)v_h);
+    free_2d_array_host((void *)f_h);
+    free_2d_array_host((void *)g_h);
+    free_2d_array_host((void *)p_h);
+    free_2d_array_host((void *)rhs_h);
+    free_2d_array_host((void *)flag_h);
 }
 
 /**
@@ -109,9 +109,9 @@ void problem_set_up()
     {
         for (int j = 0; j < jmax + 2; j++)
         {
-            u_h[INDEX_2D(i, j, u_h_array.size_x)] = ui;
-            v_h[INDEX_2D(i, j, v_h_array.size_x)] = vi;
-            p_h[INDEX_2D(i, j, p_h_array.size_x)] = 0.0;
+            u_h[INDEX_2D(i, j, u_h_array.size_y)] = ui;
+            v_h[INDEX_2D(i, j, v_h_array.size_y)] = vi;
+            p_h[INDEX_2D(i, j, p_h_array.size_y)] = 0.0;
         }
     }
 
@@ -125,21 +125,21 @@ void problem_set_up()
         {
             double x = (i - 0.5) * delx - mx;
             double y = (j - 0.5) * dely - my;
-            flag_h[INDEX_2D(i, j, flag_h_array.size_x)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
+            flag_h[INDEX_2D(i, j, flag_h_array.size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
         }
     }
 
     /* Mark the north & south boundary cells */
     for (int i = 0; i <= imax + 1; i++)
     {
-        flag_h[INDEX_2D(i, 0, flag_h_array.size_x)] = C_B;
-        flag_h[INDEX_2D(i, jmax + 1, flag_h_array.size_x)] = C_B;
+        flag_h[INDEX_2D(i, 0, flag_h_array.size_y)] = C_B;
+        flag_h[INDEX_2D(i, jmax + 1, flag_h_array.size_y)] = C_B;
     }
     /* Mark the east and west boundary cells */
     for (int j = 1; j <= jmax; j++)
     {
-        flag_h[INDEX_2D(0, j, flag_h_array.size_x)] = C_B;
-        flag_h[INDEX_2D(imax + 1, j, flag_h_array.size_x)] = C_B;
+        flag_h[INDEX_2D(0, j, flag_h_array.size_y)] = C_B;
+        flag_h[INDEX_2D(imax + 1, j, flag_h_array.size_y)] = C_B;
     }
 
     fluid_cells = imax * jmax;
@@ -149,17 +149,17 @@ void problem_set_up()
     {
         for (int j = 1; j <= jmax; j++)
         {
-            if (!(flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F))
+            if (!(flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F))
             {
                 fluid_cells--;
-                if (flag_h[INDEX_2D(i - 1, j, flag_h_array.size_x)] & C_F)
-                    flag_h[INDEX_2D(i, j, flag_h_array.size_x)] |= B_W;
-                if (flag_h[INDEX_2D(i + 1, j, flag_h_array.size_x)] & C_F)
-                    flag_h[INDEX_2D(i, j, flag_h_array.size_x)] |= B_E;
-                if (flag_h[INDEX_2D(i, j - 1, flag_h_array.size_x)] & C_F)
-                    flag_h[INDEX_2D(i, j, flag_h_array.size_x)] |= B_S;
-                if (flag_h[INDEX_2D(i, j + 1, flag_h_array.size_x)] & C_F)
-                    flag_h[INDEX_2D(i, j, flag_h_array.size_x)] |= B_N;
+                if (flag_h[INDEX_2D(i - 1, j, flag_h_array.size_y)] & C_F)
+                    flag_h[INDEX_2D(i, j, flag_h_array.size_y)] |= B_W;
+                if (flag_h[INDEX_2D(i + 1, j, flag_h_array.size_y)] & C_F)
+                    flag_h[INDEX_2D(i, j, flag_h_array.size_y)] |= B_E;
+                if (flag_h[INDEX_2D(i, j - 1, flag_h_array.size_y)] & C_F)
+                    flag_h[INDEX_2D(i, j, flag_h_array.size_y)] |= B_S;
+                if (flag_h[INDEX_2D(i, j + 1, flag_h_array.size_y)] & C_F)
+                    flag_h[INDEX_2D(i, j, flag_h_array.size_y)] |= B_N;
             }
         }
     }

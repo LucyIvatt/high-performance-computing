@@ -34,26 +34,26 @@ void compute_tentative_velocity()
         for (int j = 1; j < jmax + 1; j++)
         {
             /* only if both adjacent cells are fluid cells */
-            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F) && (flag_h[INDEX_2D(i + 1, j, flag_h_array.size_x)] & C_F))
+            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F) && (flag_h[INDEX_2D(i + 1, j, flag_h_array.size_y)] & C_F))
             {
-                double du2dx = ((u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i + 1, j, u_h_array.size_x)]) * (u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i + 1, j, u_h_array.size_x)]) +
-                                y * fabs(u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i + 1, j, u_h_array.size_x)]) * (u_h[INDEX_2D(i, j, u_h_array.size_x)] - u_h[INDEX_2D(i + 1, j, u_h_array.size_x)]) -
-                                (u_h[INDEX_2D(i - 1, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j, u_h_array.size_x)]) * (u_h[INDEX_2D(i - 1, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j, u_h_array.size_x)]) -
-                                y * fabs(u_h[INDEX_2D(i - 1, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j, u_h_array.size_x)]) * (u_h[INDEX_2D(i - 1, j, u_h_array.size_x)] - u_h[INDEX_2D(i, j, u_h_array.size_x)])) /
+                double du2dx = ((u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i + 1, j, u_h_array.size_y)]) * (u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i + 1, j, u_h_array.size_y)]) +
+                                y * fabs(u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i + 1, j, u_h_array.size_y)]) * (u_h[INDEX_2D(i, j, u_h_array.size_y)] - u_h[INDEX_2D(i + 1, j, u_h_array.size_y)]) -
+                                (u_h[INDEX_2D(i - 1, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j, u_h_array.size_y)]) * (u_h[INDEX_2D(i - 1, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j, u_h_array.size_y)]) -
+                                y * fabs(u_h[INDEX_2D(i - 1, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j, u_h_array.size_y)]) * (u_h[INDEX_2D(i - 1, j, u_h_array.size_y)] - u_h[INDEX_2D(i, j, u_h_array.size_y)])) /
                                (4.0 * delx);
-                double duvdy = ((v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i + 1, j, v_h_array.size_x)]) * (u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j + 1, u_h_array.size_x)]) +
-                                y * fabs(v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i + 1, j, v_h_array.size_x)]) * (u_h[INDEX_2D(i, j, u_h_array.size_x)] - u_h[INDEX_2D(i, j + 1, u_h_array.size_x)]) -
-                                (v_h[INDEX_2D(i, j - 1, v_h_array.size_x)] + v_h[INDEX_2D(i + 1, j - 1, v_h_array.size_x)]) * (u_h[INDEX_2D(i, j - 1, u_h_array.size_x)] + u_h[INDEX_2D(i, j, u_h_array.size_x)]) -
-                                y * fabs(v_h[INDEX_2D(i, j - 1, v_h_array.size_x)] + v_h[INDEX_2D(i + 1, j - 1, v_h_array.size_x)]) * (u_h[INDEX_2D(i, j - 1, u_h_array.size_x)] - u_h[INDEX_2D(i, j, u_h_array.size_x)])) /
+                double duvdy = ((v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i + 1, j, v_h_array.size_y)]) * (u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j + 1, u_h_array.size_y)]) +
+                                y * fabs(v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i + 1, j, v_h_array.size_y)]) * (u_h[INDEX_2D(i, j, u_h_array.size_y)] - u_h[INDEX_2D(i, j + 1, u_h_array.size_y)]) -
+                                (v_h[INDEX_2D(i, j - 1, v_h_array.size_y)] + v_h[INDEX_2D(i + 1, j - 1, v_h_array.size_y)]) * (u_h[INDEX_2D(i, j - 1, u_h_array.size_y)] + u_h[INDEX_2D(i, j, u_h_array.size_y)]) -
+                                y * fabs(v_h[INDEX_2D(i, j - 1, v_h_array.size_y)] + v_h[INDEX_2D(i + 1, j - 1, v_h_array.size_y)]) * (u_h[INDEX_2D(i, j - 1, u_h_array.size_y)] - u_h[INDEX_2D(i, j, u_h_array.size_y)])) /
                                (4.0 * dely);
-                double laplu = (u_h[INDEX_2D(i + 1, j, u_h_array.size_x)] - 2.0 * u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i - 1, j, u_h_array.size_x)]) / delx / delx +
-                               (u_h[INDEX_2D(i, j + 1, u_h_array.size_x)] - 2.0 * u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j - 1, u_h_array.size_x)]) / dely / dely;
+                double laplu = (u_h[INDEX_2D(i + 1, j, u_h_array.size_y)] - 2.0 * u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i - 1, j, u_h_array.size_y)]) / delx / delx +
+                               (u_h[INDEX_2D(i, j + 1, u_h_array.size_y)] - 2.0 * u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j - 1, u_h_array.size_y)]) / dely / dely;
 
-                f_h[INDEX_2D(i, j, f_h_array.size_x)] = u_h[INDEX_2D(i, j, u_h_array.size_x)] + del_t * (laplu / Re - du2dx - duvdy);
+                f_h[INDEX_2D(i, j, f_h_array.size_y)] = u_h[INDEX_2D(i, j, u_h_array.size_y)] + del_t * (laplu / Re - du2dx - duvdy);
             }
             else
             {
-                f_h[INDEX_2D(i, j, f_h_array.size_x)] = u_h[INDEX_2D(i, j, u_h_array.size_x)];
+                f_h[INDEX_2D(i, j, f_h_array.size_y)] = u_h[INDEX_2D(i, j, u_h_array.size_y)];
             }
         }
     }
@@ -62,26 +62,26 @@ void compute_tentative_velocity()
         for (int j = 1; j < jmax; j++)
         {
             /* only if both adjacent cells are fluid cells */
-            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F) && (flag_h[INDEX_2D(i, j + 1, flag_h_array.size_x)] & C_F))
+            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F) && (flag_h[INDEX_2D(i, j + 1, flag_h_array.size_y)] & C_F))
             {
-                double duvdx = ((u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j + 1, u_h_array.size_x)]) * (v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i + 1, j, v_h_array.size_x)]) +
-                                y * fabs(u_h[INDEX_2D(i, j, u_h_array.size_x)] + u_h[INDEX_2D(i, j + 1, u_h_array.size_x)]) * (v_h[INDEX_2D(i, j, v_h_array.size_x)] - v_h[INDEX_2D(i + 1, j, v_h_array.size_x)]) -
-                                (u_h[INDEX_2D(i - 1, j, u_h_array.size_x)] + u_h[INDEX_2D(i - 1, j + 1, u_h_array.size_x)]) * (v_h[INDEX_2D(i - 1, j, v_h_array.size_x)] + v_h[INDEX_2D(i, j, v_h_array.size_x)]) -
-                                y * fabs(u_h[INDEX_2D(i - 1, j, u_h_array.size_x)] + u_h[INDEX_2D(i - 1, j + 1, u_h_array.size_x)]) * (v_h[INDEX_2D(i - 1, j, v_h_array.size_x)] - v_h[INDEX_2D(i, j, v_h_array.size_x)])) /
+                double duvdx = ((u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j + 1, u_h_array.size_y)]) * (v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i + 1, j, v_h_array.size_y)]) +
+                                y * fabs(u_h[INDEX_2D(i, j, u_h_array.size_y)] + u_h[INDEX_2D(i, j + 1, u_h_array.size_y)]) * (v_h[INDEX_2D(i, j, v_h_array.size_y)] - v_h[INDEX_2D(i + 1, j, v_h_array.size_y)]) -
+                                (u_h[INDEX_2D(i - 1, j, u_h_array.size_y)] + u_h[INDEX_2D(i - 1, j + 1, u_h_array.size_y)]) * (v_h[INDEX_2D(i - 1, j, v_h_array.size_y)] + v_h[INDEX_2D(i, j, v_h_array.size_y)]) -
+                                y * fabs(u_h[INDEX_2D(i - 1, j, u_h_array.size_y)] + u_h[INDEX_2D(i - 1, j + 1, u_h_array.size_y)]) * (v_h[INDEX_2D(i - 1, j, v_h_array.size_y)] - v_h[INDEX_2D(i, j, v_h_array.size_y)])) /
                                (4.0 * delx);
-                double dv2dy = ((v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i, j + 1, v_h_array.size_x)]) * (v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i, j + 1, v_h_array.size_x)]) +
-                                y * fabs(v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i, j + 1, v_h_array.size_x)]) * (v_h[INDEX_2D(i, j, v_h_array.size_x)] - v_h[INDEX_2D(i, j + 1, v_h_array.size_x)]) -
-                                (v_h[INDEX_2D(i, j - 1, v_h_array.size_x)] + v_h[INDEX_2D(i, j, v_h_array.size_x)]) * (v_h[INDEX_2D(i, j - 1, v_h_array.size_x)] + v_h[INDEX_2D(i, j, v_h_array.size_x)]) -
-                                y * fabs(v_h[INDEX_2D(i, j - 1, v_h_array.size_x)] + v_h[INDEX_2D(i, j, v_h_array.size_x)]) * (v_h[INDEX_2D(i, j - 1, v_h_array.size_x)] - v_h[INDEX_2D(i, j, v_h_array.size_x)])) /
+                double dv2dy = ((v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i, j + 1, v_h_array.size_y)]) * (v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i, j + 1, v_h_array.size_y)]) +
+                                y * fabs(v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i, j + 1, v_h_array.size_y)]) * (v_h[INDEX_2D(i, j, v_h_array.size_y)] - v_h[INDEX_2D(i, j + 1, v_h_array.size_y)]) -
+                                (v_h[INDEX_2D(i, j - 1, v_h_array.size_y)] + v_h[INDEX_2D(i, j, v_h_array.size_y)]) * (v_h[INDEX_2D(i, j - 1, v_h_array.size_y)] + v_h[INDEX_2D(i, j, v_h_array.size_y)]) -
+                                y * fabs(v_h[INDEX_2D(i, j - 1, v_h_array.size_y)] + v_h[INDEX_2D(i, j, v_h_array.size_y)]) * (v_h[INDEX_2D(i, j - 1, v_h_array.size_y)] - v_h[INDEX_2D(i, j, v_h_array.size_y)])) /
                                (4.0 * dely);
-                double laplv = (v_h[INDEX_2D(i + 1, j, v_h_array.size_x)] - 2.0 * v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i - 1, j, v_h_array.size_x)]) / delx / delx +
-                               (v_h[INDEX_2D(i, j + 1, v_h_array.size_x)] - 2.0 * v_h[INDEX_2D(i, j, v_h_array.size_x)] + v_h[INDEX_2D(i, j - 1, v_h_array.size_x)]) / dely / dely;
+                double laplv = (v_h[INDEX_2D(i + 1, j, v_h_array.size_y)] - 2.0 * v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i - 1, j, v_h_array.size_y)]) / delx / delx +
+                               (v_h[INDEX_2D(i, j + 1, v_h_array.size_y)] - 2.0 * v_h[INDEX_2D(i, j, v_h_array.size_y)] + v_h[INDEX_2D(i, j - 1, v_h_array.size_y)]) / dely / dely;
 
-                g_h[INDEX_2D(i, j, g_h_array.size_x)] = v_h[INDEX_2D(i, j, v_h_array.size_x)] + del_t * (laplv / Re - duvdx - dv2dy);
+                g_h[INDEX_2D(i, j, g_h_array.size_y)] = v_h[INDEX_2D(i, j, v_h_array.size_y)] + del_t * (laplv / Re - duvdx - dv2dy);
             }
             else
             {
-                g_h[INDEX_2D(i, j, g_h_array.size_x)] = v_h[INDEX_2D(i, j, v_h_array.size_x)];
+                g_h[INDEX_2D(i, j, g_h_array.size_y)] = v_h[INDEX_2D(i, j, v_h_array.size_y)];
             }
         }
     }
@@ -89,13 +89,13 @@ void compute_tentative_velocity()
     /* f & g at external boundaries */
     for (int j = 1; j < jmax + 1; j++)
     {
-        f_h[INDEX_2D(0, j, f_h_array.size_x)] = u_h[INDEX_2D(0, j, u_h_array.size_x)];
-        f_h[INDEX_2D(imax, j, f_h_array.size_x)] = u_h[INDEX_2D(imax, j, u_h_array.size_x)];
+        f_h[INDEX_2D(0, j, f_h_array.size_y)] = u_h[INDEX_2D(0, j, u_h_array.size_y)];
+        f_h[INDEX_2D(imax, j, f_h_array.size_y)] = u_h[INDEX_2D(imax, j, u_h_array.size_y)];
     }
     for (int i = 1; i < imax + 1; i++)
     {
-        g_h[INDEX_2D(i, 0, g_h_array.size_x)] = v_h[INDEX_2D(i, 0, v_h_array.size_x)];
-        g_h[INDEX_2D(i, jmax, g_h_array.size_x)] = v_h[INDEX_2D(i, jmax, v_h_array.size_x)];
+        g_h[INDEX_2D(i, 0, g_h_array.size_y)] = v_h[INDEX_2D(i, 0, v_h_array.size_y)];
+        g_h[INDEX_2D(i, jmax, g_h_array.size_y)] = v_h[INDEX_2D(i, jmax, v_h_array.size_y)];
     }
 }
 
@@ -109,11 +109,11 @@ void compute_rhs()
     {
         for (int j = 1; j < jmax + 1; j++)
         {
-            if (flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F)
+            if (flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F)
             {
                 /* only for fluid and non-surface cells */
-                rhs_h[INDEX_2D(i, j, rhs_h_array.size_x)] = ((f_h[INDEX_2D(i, j, f_h_array.size_x)] - f_h[INDEX_2D(i - 1, j, f_h_array.size_x)]) / delx +
-                             (g_h[INDEX_2D(i, j, g_h_array.size_x)] - g_h[INDEX_2D(i, j - 1, g_h_array.size_x)]) / dely) /
+                rhs_h[INDEX_2D(i, j, rhs_h_array.size_y)] = ((f_h[INDEX_2D(i, j, f_h_array.size_y)] - f_h[INDEX_2D(i - 1, j, f_h_array.size_y)]) / delx +
+                             (g_h[INDEX_2D(i, j, g_h_array.size_y)] - g_h[INDEX_2D(i, j - 1, g_h_array.size_y)]) / dely) /
                             del_t;
             }
         }
@@ -138,9 +138,9 @@ double poisson()
     {
         for (int j = 1; j < jmax + 1; j++)
         {
-            if (flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F)
+            if (flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F)
             {
-                p0 += p_h[INDEX_2D(i, j, p_h_array.size_x)] * p_h[INDEX_2D(i, j, p_h_array.size_x)];
+                p0 += p_h[INDEX_2D(i, j, p_h_array.size_y)] * p_h[INDEX_2D(i, j, p_h_array.size_y)];
             }
         }
     }
@@ -166,24 +166,24 @@ double poisson()
                     {
                         continue;
                     }
-                    if (flag_h[INDEX_2D(i, j, flag_h_array.size_x)] == (C_F | B_NSEW))
+                    if (flag_h[INDEX_2D(i, j, flag_h_array.size_y)] == (C_F | B_NSEW))
                     {
                         /* five point star for interior fluid cells */
-                        p_h[INDEX_2D(i, j, p_h_array.size_x)] = (1.0 - omega) * p_h[INDEX_2D(i, j, p_h_array.size_x)] -
-                                  beta_2 * ((p_h[INDEX_2D(i + 1, j, p_h_array.size_x)] + p_h[INDEX_2D(i - 1, j, p_h_array.size_x)]) * rdx2 + (p_h[INDEX_2D(i, j + 1, p_h_array.size_x)] + p_h[INDEX_2D(i, j - 1, p_h_array.size_x)]) * rdy2 - rhs_h[INDEX_2D(i, j, rhs_h_array.size_x)]);
+                        p_h[INDEX_2D(i, j, p_h_array.size_y)] = (1.0 - omega) * p_h[INDEX_2D(i, j, p_h_array.size_y)] -
+                                  beta_2 * ((p_h[INDEX_2D(i + 1, j, p_h_array.size_y)] + p_h[INDEX_2D(i - 1, j, p_h_array.size_y)]) * rdx2 + (p_h[INDEX_2D(i, j + 1, p_h_array.size_y)] + p_h[INDEX_2D(i, j - 1, p_h_array.size_y)]) * rdy2 - rhs_h[INDEX_2D(i, j, rhs_h_array.size_y)]);
                     }
-                    else if (flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F)
+                    else if (flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F)
                     {
                         /* modified star near boundary */
 
-                        double eps_E = ((flag_h[INDEX_2D(i + 1, j, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
-                        double eps_W = ((flag_h[INDEX_2D(i - 1, j, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
-                        double eps_N = ((flag_h[INDEX_2D(i, j + 1, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
-                        double eps_S = ((flag_h[INDEX_2D(i, j - 1, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
+                        double eps_E = ((flag_h[INDEX_2D(i + 1, j, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
+                        double eps_W = ((flag_h[INDEX_2D(i - 1, j, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
+                        double eps_N = ((flag_h[INDEX_2D(i, j + 1, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
+                        double eps_S = ((flag_h[INDEX_2D(i, j - 1, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
 
                         double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                        p_h[INDEX_2D(i, j, p_h_array.size_x)] = (1.0 - omega) * p_h[INDEX_2D(i, j, p_h_array.size_x)] -
-                                  beta_mod * ((eps_E * p_h[INDEX_2D(i + 1, j, p_h_array.size_x)] + eps_W * p_h[INDEX_2D(i - 1, j, p_h_array.size_x)]) * rdx2 + (eps_N * p_h[INDEX_2D(i, j + 1, p_h_array.size_x)] + eps_S * p_h[INDEX_2D(i, j - 1, p_h_array.size_x)]) * rdy2 - rhs_h[INDEX_2D(i, j, rhs_h_array.size_x)]);
+                        p_h[INDEX_2D(i, j, p_h_array.size_y)] = (1.0 - omega) * p_h[INDEX_2D(i, j, p_h_array.size_y)] -
+                                  beta_mod * ((eps_E * p_h[INDEX_2D(i + 1, j, p_h_array.size_y)] + eps_W * p_h[INDEX_2D(i - 1, j, p_h_array.size_y)]) * rdx2 + (eps_N * p_h[INDEX_2D(i, j + 1, p_h_array.size_y)] + eps_S * p_h[INDEX_2D(i, j - 1, p_h_array.size_y)]) * rdy2 - rhs_h[INDEX_2D(i, j, rhs_h_array.size_y)]);
                     }
                 }
             }
@@ -194,21 +194,21 @@ double poisson()
         {
             for (int j = 1; j < jmax + 1; j++)
             {
-                if (flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F)
+                if (flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F)
                 {
-                    double eps_E = ((flag_h[INDEX_2D(i + 1, j, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag_h[INDEX_2D(i - 1, j, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag_h[INDEX_2D(i, j + 1, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag_h[INDEX_2D(i, j - 1, flag_h_array.size_x)] & C_F) ? 1.0 : 0.0);
+                    double eps_E = ((flag_h[INDEX_2D(i + 1, j, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((flag_h[INDEX_2D(i - 1, j, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((flag_h[INDEX_2D(i, j + 1, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((flag_h[INDEX_2D(i, j - 1, flag_h_array.size_y)] & C_F) ? 1.0 : 0.0);
 
                     /* only fluid cells */
-                    double add = (eps_E * (p_h[INDEX_2D(i + 1, j, p_h_array.size_x)] - p_h[INDEX_2D(i, j, p_h_array.size_x)]) -
-                                  eps_W * (p_h[INDEX_2D(i, j, p_h_array.size_x)] - p_h[INDEX_2D(i - 1, j, p_h_array.size_x)])) *
+                    double add = (eps_E * (p_h[INDEX_2D(i + 1, j, p_h_array.size_y)] - p_h[INDEX_2D(i, j, p_h_array.size_y)]) -
+                                  eps_W * (p_h[INDEX_2D(i, j, p_h_array.size_y)] - p_h[INDEX_2D(i - 1, j, p_h_array.size_y)])) *
                                      rdx2 +
-                                 (eps_N * (p_h[INDEX_2D(i, j + 1, p_h_array.size_x)] - p_h[INDEX_2D(i, j, p_h_array.size_x)]) -
-                                  eps_S * (p_h[INDEX_2D(i, j, p_h_array.size_x)] - p_h[INDEX_2D(i, j - 1, p_h_array.size_x)])) *
+                                 (eps_N * (p_h[INDEX_2D(i, j + 1, p_h_array.size_y)] - p_h[INDEX_2D(i, j, p_h_array.size_y)]) -
+                                  eps_S * (p_h[INDEX_2D(i, j, p_h_array.size_y)] - p_h[INDEX_2D(i, j - 1, p_h_array.size_y)])) *
                                      rdy2 -
-                                 rhs_h[INDEX_2D(i, j, rhs_h_array.size_x)];
+                                 rhs_h[INDEX_2D(i, j, rhs_h_array.size_y)];
                     res += add * add;
                 }
             }
@@ -234,9 +234,9 @@ void update_velocity()
         for (int j = 1; j < jmax - 1; j++)
         {
             /* only if both adjacent cells are fluid cells */
-            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F) && (flag_h[INDEX_2D(i + 1, j, flag_h_array.size_x)] & C_F))
+            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F) && (flag_h[INDEX_2D(i + 1, j, flag_h_array.size_y)] & C_F))
             {
-                u_h[INDEX_2D(i, j, u_h_array.size_x)] = f_h[INDEX_2D(i, j, f_h_array.size_x)] - (p_h[INDEX_2D(i + 1, j, p_h_array.size_x)] - p_h[INDEX_2D(i, j, p_h_array.size_x)]) * del_t / delx;
+                u_h[INDEX_2D(i, j, u_h_array.size_y)] = f_h[INDEX_2D(i, j, f_h_array.size_y)] - (p_h[INDEX_2D(i + 1, j, p_h_array.size_y)] - p_h[INDEX_2D(i, j, p_h_array.size_y)]) * del_t / delx;
             }
         }
     }
@@ -246,9 +246,9 @@ void update_velocity()
         for (int j = 1; j < jmax - 2; j++)
         {
             /* only if both adjacent cells are fluid cells */
-            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_x)] & C_F) && (flag_h[INDEX_2D(i, j + 1, flag_h_array.size_x)] & C_F))
+            if ((flag_h[INDEX_2D(i, j, flag_h_array.size_y)] & C_F) && (flag_h[INDEX_2D(i, j + 1, flag_h_array.size_y)] & C_F))
             {
-                v_h[INDEX_2D(i, j, v_h_array.size_x)] = g_h[INDEX_2D(i, j, g_h_array.size_x)] - (p_h[INDEX_2D(i, j + 1, p_h_array.size_x)] - p_h[INDEX_2D(i, j, p_h_array.size_x)]) * del_t / dely;
+                v_h[INDEX_2D(i, j, v_h_array.size_y)] = g_h[INDEX_2D(i, j, g_h_array.size_y)] - (p_h[INDEX_2D(i, j + 1, p_h_array.size_y)] - p_h[INDEX_2D(i, j, p_h_array.size_y)]) * del_t / dely;
             }
         }
     }
@@ -270,7 +270,7 @@ void set_timestep_interval()
         {
             for (int j = 1; j < jmax + 2; j++)
             {
-                umax = fmax(fabs(u_h[INDEX_2D(i, j, u_h_array.size_x)]), umax);
+                umax = fmax(fabs(u_h[INDEX_2D(i, j, u_h_array.size_y)]), umax);
             }
         }
 
@@ -278,7 +278,7 @@ void set_timestep_interval()
         {
             for (int j = 0; j < jmax + 2; j++)
             {
-                vmax = fmax(fabs(v_h[INDEX_2D(i, j, v_h_array.size_x)]), vmax);
+                vmax = fmax(fabs(v_h[INDEX_2D(i, j, v_h_array.size_y)]), vmax);
             }
         }
 
