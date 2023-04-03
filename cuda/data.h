@@ -12,8 +12,6 @@
 #define B_SE (B_S | B_E)
 #define B_NSEW (B_N | B_S | B_E | B_W)
 
-#define INDEX_2D(i, j, m) ((i*m+j))
-
 #define C_F 0x0010 /* This cell is a fluid cell */
 
 extern double xlength; /* Width of simulated domain */
@@ -39,18 +37,6 @@ extern int fluid_cells;
 extern double delx, dely;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-struct DoubleArray2D {
-    double* data;
-    int size_x;
-    int size_y;
-};
-
-struct CharArray2D {
-    char* data;
-    int size_x;
-    int size_y;
-};
-
 extern int u_size_x, u_size_y;
 extern double *u_h;
 extern struct DoubleArray2D u_h_array;
@@ -80,11 +66,15 @@ extern char *flag_h;
 extern struct CharArray2D flag_h_array;
 
 
-double *alloc_2d_array(int m, int n);
-char *alloc_2d_char_array(int m, int n);
-char *copy_char_array_to_device(int m, int n, char *src);
-double *copy_double_array_to_device(int m, int n, double *src);
-void free_2d_array_device(void **array);
-void free_2d_array_host(void **array);
+double* alloc_2d_double_array(int m, int n);
+double* copy_double_array_to_device(int m, int n, double *src);
+void copy_double_array_to_host(int m, int n, double *src, double *dest);
+
+char* alloc_2d_char_array(int m, int n);
+char* copy_char_array_to_device(int m, int n, char *src);
+void copy_char_array_to_host(int m, int n, char *src, char *dest);
+
+void free_2d_array_device(void *array);
+void free_2d_array_host(void *array);
 
 #endif

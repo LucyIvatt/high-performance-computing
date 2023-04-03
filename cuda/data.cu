@@ -5,6 +5,7 @@
 
 #include "vtk.h"
 #include "data.h"
+#include "extras.h"
 
 double xlength = 4.0; /* Width of simulated domain */
 double ylength = 1.0; /* Height of simulated domain */
@@ -31,45 +32,32 @@ int fluid_cells = 0;
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
 double *u_h;
-struct Array2D u_array_h, u_array_d;
+DoubleArray2D u_h_array = {.data=u_h, .size_x=u_size_x, .size_y=u_size_y};
 
 int v_size_x, v_size_y;
 double *v_h;
-struct Array2D v_array_h, v_array_d;
+DoubleArray2D v_h_array = {.data=v_h, .size_x=v_size_x, .size_y=v_size_y};
 
 int p_size_x, p_size_y;
 double *p_h;
-struct Array2D p_array_h, p_array_d;
+DoubleArray2D p_h_array = {.data=p_h, .size_x=p_size_x, .size_y=p_size_y};
 
 int rhs_size_x, rhs_size_y;
 double *rhs_h;
-struct Array2D rhs_array_h, rhs_array_d;
+DoubleArray2D rhs_h_array = {.data=rhs_h, .size_x=rhs_size_x, .size_y=rhs_size_y};
 
 int f_size_x, f_size_y;
 double *f_h;
-struct Array2D f_array_h, f_array_d;
+DoubleArray2D f_h_array = {.data=f_h, .size_x=f_size_x, .size_y=f_size_y};
 
 int g_size_x, g_size_y;
 double *g_h;
-struct Array2D g_array_h, g_array_d;
+DoubleArray2D g_h_array = {.data=g_h, .size_x=g_size_x, .size_y=g_size_y};
 
 int flag_size_x, flag_size_y;
 char *flag_h;
-struct Array2D flag_array_h, flag_array_d;
+CharArray2D flag_h_array = {.data=flag_h, .size_x=flag_size_x, .size_y=flag_size_y};
 
-
-
-/**
- * @brief Allocate a 2D char array that is addressable using square brackets
- *
- * @param m The first dimension of the array
- * @param n The second dimension of the array
- * @return char** A 2D array
- */
-char *alloc_2d_char_array(int m, int n)
-{
-	return (char *)calloc(m * n, sizeof(char));
-}
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
@@ -78,7 +66,7 @@ char *alloc_2d_char_array(int m, int n)
  * @param n The second dimension of the array
  * @return double* A vectorized 2D array
  */
-double* alloc_2d_array(int m, int n)
+double* alloc_2d_double_array(int m, int n)
 {
 	return (double *)calloc(m * n, sizeof(double));
 }
@@ -86,7 +74,7 @@ double* alloc_2d_array(int m, int n)
 /**
 
  */
-double *copy_double_array_to_device(int m, int n, double *src)
+double* copy_double_array_to_device(int m, int n, double *src)
 {
 	double* dev;
 	cudaMalloc(&dev, m * n * sizeof(double));
@@ -97,30 +85,52 @@ double *copy_double_array_to_device(int m, int n, double *src)
 /**
 
  */
-void *copy_double_array_to_host(int m, int n, double *src, double *dest)
+void copy_double_array_to_host(int m, int n, double *src, double *dest)
 {
 	cudaMemcpy(dest, src, m * n * sizeof(double), cudaMemcpyDeviceToHost);
+}
+
+/**
+ * @brief Allocate a 2D char array that is addressable using square brackets
+ *
+ * @param m The first dimension of the array
+ * @param n The second dimension of the array
+ * @return char** A 2D array
+ */
+char* alloc_2d_char_array(int m, int n)
+{
+	return (char *)calloc(m * n, sizeof(char));
 }
 
 /**
 
  * @return char** A 2D array
  */
-char *copy_char_array_to_device(int m, int n, char **src)
+void copy_char_array_to_host(int m, int n, char *src, char *dest)
 {
-
+	cudaMemcpy(dest, src, m * n * sizeof(char), cudaMemcpyDeviceToHost);
 }
 
 
+/**
+
+ */
+char* copy_char_array_to_device(int m, int n, char *src)
+{
+	char* dev;
+	cudaMalloc(&dev, m * n * sizeof(char));
+	cudaMemcpy(dev, src, m * n * sizeof(char), cudaMemcpyHostToDevice);
+	return dev;
+}
 
 /**
  * @brief Free a 2D array
  *
  * @param array The 2D array to free
  */
-void free_2d_array_device(void **array)
+void free_2d_array_device(void *array)
 {
-
+	cudaFree(array);
 }
 
 /**
@@ -128,9 +138,8 @@ void free_2d_array_device(void **array)
  *
  * @param array The 2D array to free
  */
-void free_2d_array_host(void **array)
+void free_2d_array_host(void *array)
 {
-
-
+	free(array);
 }
 

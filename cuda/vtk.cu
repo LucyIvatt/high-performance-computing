@@ -5,6 +5,7 @@
 
 #include "vtk.h"
 #include "data.h"
+#include "extras.h"
 
 char checkpoint_basename[1024];
 char result_filename[1024];
@@ -106,7 +107,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < u_size_y; j++)
     {
         for (int i = 0; i < u_size_x; i++)
-            fprintf(f, "%.12e ", u[i][j]);
+            fprintf(f, "%.12e ", u_h[INDEX_2D(i, j, u_h_array.size_x)]);
         fprintf(f, "\n");
     }
 
@@ -117,7 +118,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < v_size_y; j++)
     {
         for (int i = 0; i < v_size_x; i++)
-            fprintf(f, "%.12e ", v[i][j]);
+            fprintf(f, "%.12e ", v_h[INDEX_2D(i, j, v_h_array.size_x)]);
         fprintf(f, "\n");
     }
 
@@ -128,7 +129,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < p_size_y; j++)
     {
         for (int i = 0; i < p_size_x; i++)
-            fprintf(f, "%.12e ", p[i][j]);
+            fprintf(f, "%.12e ", p_h[INDEX_2D(i, j, p_h_array.size_x)]);
         fprintf(f, "\n");
     }
 
@@ -139,7 +140,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < flag_size_y; j++)
     {
         for (int i = 0; i < flag_size_x; i++)
-            fprintf(f, "%d ", flag[i][j]);
+            fprintf(f, "%d ", flag_h[INDEX_2D(i, j, flag_h_array.size_x)]);
         fprintf(f, "\n");
     }
 
