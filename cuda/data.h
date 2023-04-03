@@ -12,6 +12,8 @@
 #define B_SE (B_S | B_E)
 #define B_NSEW (B_N | B_S | B_E | B_W)
 
+#define INDEX_2D(i, j, m) ((i*m+j))
+
 #define C_F 0x0010 /* This cell is a fluid cell */
 
 extern double xlength; /* Width of simulated domain */
@@ -37,45 +39,51 @@ extern int fluid_cells;
 extern double delx, dely;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-struct Array2D {
-    double* array;
+struct DoubleArray2D {
+    double* data;
+    int size_x;
+    int size_y;
+};
+
+struct CharArray2D {
+    char* data;
     int size_x;
     int size_y;
 };
 
 extern int u_size_x, u_size_y;
-extern double *u;
-extern struct Array2D u_array;
+extern double *u_h;
+extern struct DoubleArray2D u_h_array;
 
 extern int v_size_x, v_size_y;
-extern double *v;
-extern struct Array2D v_array;
+extern double *v_h;
+extern struct DoubleArray2D v_h_array;
 
 extern int p_size_x, p_size_y;
-extern double *p;
-extern struct Array2D p_array;
+extern double *p_h;
+extern struct DoubleArray2D p_h_array;
 
 extern int rhs_size_x, rhs_size_y;
-extern double *rhs;
-extern struct Array2D rhs_array;
+extern double *rhs_h;
+extern struct DoubleArray2D rhs_h_array;
 
 extern int f_size_x, f_size_y;
-extern double *f;
-extern struct Array2D f_array;
+extern double *f_h;
+extern struct DoubleArray2D f_h_array;
 
 extern int g_size_x, g_size_y;
-extern double *g;
-extern struct Array2D g_array;
+extern double *g_h;
+extern struct DoubleArray2D g_h_array;
 
 extern int flag_size_x, flag_size_y;
-extern char *flag;
-extern struct Array2D flag_array;
+extern char *flag_h;
+extern struct CharArray2D flag_h_array;
 
 
 double *alloc_2d_array(int m, int n);
 char *alloc_2d_char_array(int m, int n);
-char **copy_char_array_to_device(int m, int n, char **src);
-double **copy_double_array_to_device(int m, int n, double **src);
+char *copy_char_array_to_device(int m, int n, char *src);
+double *copy_double_array_to_device(int m, int n, double *src);
 void free_2d_array_device(void **array);
 void free_2d_array_host(void **array);
 

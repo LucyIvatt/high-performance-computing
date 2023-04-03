@@ -30,44 +30,34 @@ int fluid_cells = 0;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
-double **u;
-struct Array2D u_array;
+double *u_h;
+struct Array2D u_array_h, u_array_d;
 
 int v_size_x, v_size_y;
-double **v;
-struct Array2D v_array;
+double *v_h;
+struct Array2D v_array_h, v_array_d;
 
 int p_size_x, p_size_y;
-double **p;
-struct Array2D p_array;
+double *p_h;
+struct Array2D p_array_h, p_array_d;
 
 int rhs_size_x, rhs_size_y;
-double **rhs;
-struct Array2D rhs_array;
+double *rhs_h;
+struct Array2D rhs_array_h, rhs_array_d;
 
 int f_size_x, f_size_y;
-double **f;
-struct Array2D f_array;
+double *f_h;
+struct Array2D f_array_h, f_array_d;
 
 int g_size_x, g_size_y;
-double **g;
-struct Array2D g_array;
+double *g_h;
+struct Array2D g_array_h, g_array_d;
 
 int flag_size_x, flag_size_y;
-char **flag;
-struct Array2D flag_array;
+char *flag_h;
+struct Array2D flag_array_h, flag_array_d;
 
-/**
- * @brief Allocate a 2D array that is addressable using square brackets
- *
- * @param m The first dimension of the array
- * @param n The second dimension of the array
- * @return double* A vectorized 2D array
- */
-double* alloc_2d_array(int m, int n)
-{
-	return (double *)calloc(m * n, sizeof(double));
-}
+
 
 /**
  * @brief Allocate a 2D char array that is addressable using square brackets
@@ -82,28 +72,46 @@ char *alloc_2d_char_array(int m, int n)
 }
 
 /**
- * @brief Allocate a 2D char array that is addressable using square brackets
+ * @brief Allocate a 2D array that is addressable using square brackets
  *
  * @param m The first dimension of the array
  * @param n The second dimension of the array
- * @return char** A 2D array
+ * @return double* A vectorized 2D array
  */
-char **copy_char_array_to_device(int m, int n, char **src)
+double* alloc_2d_array(int m, int n)
 {
-
+	return (double *)calloc(m * n, sizeof(double));
 }
 
 /**
- * @brief Allocate a 2D char array that is addressable using square brackets
- *
- * @param m The first dimension of the array
- * @param n The second dimension of the array
+
+ */
+double *copy_double_array_to_device(int m, int n, double *src)
+{
+	double* dev;
+	cudaMalloc(&dev, m * n * sizeof(double));
+	cudaMemcpy(dev, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
+	return dev;
+}
+
+/**
+
+ */
+void *copy_double_array_to_host(int m, int n, double *src, double *dest)
+{
+	cudaMemcpy(dest, src, m * n * sizeof(double), cudaMemcpyDeviceToHost);
+}
+
+/**
+
  * @return char** A 2D array
  */
-double **copy_double_array_to_device(int m, int n, double **src)
+char *copy_char_array_to_device(int m, int n, char **src)
 {
 
 }
+
+
 
 /**
  * @brief Free a 2D array
@@ -122,6 +130,7 @@ void free_2d_array_device(void **array)
  */
 void free_2d_array_host(void **array)
 {
+
 
 }
 
