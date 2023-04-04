@@ -5,7 +5,6 @@
 
 #include "vtk.h"
 #include "data.h"
-#include "extras.h"
 
 double xlength = 4.0; /* Width of simulated domain */
 double ylength = 1.0; /* Height of simulated domain */
@@ -31,63 +30,34 @@ int fluid_cells = 0;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
-double *u_h;
-DoubleArray2D u_h_array = {.data=u_h, .size_x=u_size_x, .size_y=u_size_y};
-
+double *u;
 int v_size_x, v_size_y;
-double *v_h;
-DoubleArray2D v_h_array = {.data=v_h, .size_x=v_size_x, .size_y=v_size_y};
-
+double *v;
 int p_size_x, p_size_y;
-double *p_h;
-DoubleArray2D p_h_array = {.data=p_h, .size_x=p_size_x, .size_y=p_size_y};
-
+double *p;
 int rhs_size_x, rhs_size_y;
-double *rhs_h;
-DoubleArray2D rhs_h_array = {.data=rhs_h, .size_x=rhs_size_x, .size_y=rhs_size_y};
-
+double *rhs;
 int f_size_x, f_size_y;
-double *f_h;
-DoubleArray2D f_h_array = {.data=f_h, .size_x=f_size_x, .size_y=f_size_y};
-
+double *f;
 int g_size_x, g_size_y;
-double *g_h;
-DoubleArray2D g_h_array = {.data=g_h, .size_x=g_size_x, .size_y=g_size_y};
-
+double *g;
 int flag_size_x, flag_size_y;
-char *flag_h;
-CharArray2D flag_h_array = {.data=flag_h, .size_x=flag_size_x, .size_y=flag_size_y};
+char *flag;
 
+int ind(int i, int j, int x_width){
+	return (i * x_width) + j;
+}
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
  *
  * @param m The first dimension of the array
  * @param n The second dimension of the array
- * @return double* A vectorized 2D array
+ * @return double** A 2D array
  */
-double* alloc_2d_double_array(int m, int n)
+double *alloc_2d_array(int m, int n)
 {
-	return (double *)calloc(m * n, sizeof(double));
-}
-
-/**
-
- */
-double* copy_double_array_to_device(int m, int n, double *src)
-{
-	double* dev;
-	cudaMalloc(&dev, m * n * sizeof(double));
-	cudaMemcpy(dev, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
-	return dev;
-}
-
-/**
-
- */
-void copy_double_array_to_host(int m, int n, double *src, double *dest)
-{
-	cudaMemcpy(dest, src, m * n * sizeof(double), cudaMemcpyDeviceToHost);
+	return (double*)calloc(m * n, sizeof(double));
 }
 
 /**
@@ -97,30 +67,9 @@ void copy_double_array_to_host(int m, int n, double *src, double *dest)
  * @param n The second dimension of the array
  * @return char** A 2D array
  */
-char* alloc_2d_char_array(int m, int n)
+char *alloc_2d_char_array(int m, int n)
 {
-	return (char *)calloc(m * n, sizeof(char));
-}
-
-/**
-
- * @return char** A 2D array
- */
-void copy_char_array_to_host(int m, int n, char *src, char *dest)
-{
-	cudaMemcpy(dest, src, m * n * sizeof(char), cudaMemcpyDeviceToHost);
-}
-
-
-/**
-
- */
-char* copy_char_array_to_device(int m, int n, char *src)
-{
-	char* dev;
-	cudaMalloc(&dev, m * n * sizeof(char));
-	cudaMemcpy(dev, src, m * n * sizeof(char), cudaMemcpyHostToDevice);
-	return dev;
+	return (char*)calloc(m * n, sizeof(char));
 }
 
 /**
@@ -128,18 +77,7 @@ char* copy_char_array_to_device(int m, int n, char *src)
  *
  * @param array The 2D array to free
  */
-void free_2d_array_device(void *array)
-{
-	cudaFree(array);
-}
-
-/**
- * @brief Free a 2D array
- *
- * @param array The 2D array to free
- */
-void free_2d_array_host(void *array)
+void free_2d_array(void *array)
 {
 	free(array);
 }
-
