@@ -15,7 +15,7 @@ char result_filename[1024];
  */
 void set_default_base()
 {
-    set_basename("original/original_vortex");
+    set_basename("cuda/cuda_vortex");
 }
 
 /**

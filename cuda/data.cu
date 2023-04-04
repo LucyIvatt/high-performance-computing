@@ -44,10 +44,6 @@ double *g;
 int flag_size_x, flag_size_y;
 char *flag;
 
-int ind(int i, int j, int x_width){
-	return (i * x_width) + j;
-}
-
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
  *
@@ -57,7 +53,7 @@ int ind(int i, int j, int x_width){
  */
 double *alloc_2d_array(int m, int n)
 {
-	return (double*)calloc(m * n, sizeof(double));
+	return (double *)calloc(m * n, sizeof(double));
 }
 
 /**
@@ -69,7 +65,7 @@ double *alloc_2d_array(int m, int n)
  */
 char *alloc_2d_char_array(int m, int n)
 {
-	return (char*)calloc(m * n, sizeof(char));
+	return (char *)calloc(m * n, sizeof(char));
 }
 
 /**

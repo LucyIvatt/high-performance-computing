@@ -52,7 +52,8 @@ extern double *g;
 extern int flag_size_x, flag_size_y;
 extern char *flag;
 
-int ind(int i, int j, int x_width);
+#define ind(i, j, m) ((i) * (m) + (j))
+
 double *alloc_2d_array(int m, int n);
 char *alloc_2d_char_array(int m, int n);
 void free_2d_array(void *array);
