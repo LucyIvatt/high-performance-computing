@@ -61,12 +61,14 @@ char *alloc_2d_char_array(int m, int n)
 
 double *copy_2d_array_to_gpu(double *src, int m, int n) {
 	double* gpu;
+	cudaMalloc(&gpu, m * n * sizeof(double));
 	cudaMemcpy(gpu, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
 	return gpu;
 }
 
 char *copy_2d_char_array_to_gpu(char *src, int m, int n) {
 	char* gpu;
+	cudaMalloc(&gpu, m * n * sizeof(char));
 	cudaMemcpy(gpu, src, m * n * sizeof(char), cudaMemcpyHostToDevice);
 	return gpu;
 }
