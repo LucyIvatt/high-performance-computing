@@ -70,7 +70,7 @@ extern double *g, *g_host;
 extern char *flag, *flag_host;
 
 __device__ int fluid_cells = 0;
-__device__ int del_t; /* Duration of each timestep */
+__device__ double del_t; /* Duration of each timestep */
 
 #define ind(i, j, m) ((i) * (m) + (j))
 

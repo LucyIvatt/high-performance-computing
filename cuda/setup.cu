@@ -29,6 +29,7 @@ void setup()
     cudaMemcpyToSymbol(imax, &imax_h, sizeof(int));
     cudaMemcpyToSymbol(jmax, &jmax_h, sizeof(int));
     cudaMemcpyToSymbol(t_end, &t_end_h, sizeof(double));
+
     cudaMemcpyToSymbol(del_t, &del_t_h, sizeof(double));
 }
 
