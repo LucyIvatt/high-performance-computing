@@ -337,37 +337,44 @@ int main(int argc, char *argv[])
     /* Main loop */
     int iters = 0;
     double t;
-    for (t = 0.0; t < t_end; t += del_t, iters++)
+    for (t = 0.0; t < t_end_h; t += del_t_h, iters++)
     {
         if (!fixed_dt)
             set_timestep_interval<<<1,1>>>(u, v, p, rhs, f, g, flag);
+            cudaDeviceSynchronize();
+            cudaMemcpyFromSymbol(&del_t_h, del_t, sizeof(double));
 
         tentative_velocity_start = get_time();
         compute_tentative_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
         rhs_start = get_time();
         compute_rhs<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
         poisson<<<1,1>>>(u, v, p, rhs, f, g, flag, &res);
+        cudaDeviceSynchronize();
         poisson_time += get_time() - poisson_start;
 
         update_velocity_start = get_time();
         update_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         update_velocity_time += get_time() - update_velocity_start;
 
         apply_boundary_conditions_start = get_time();
         apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 
         if ((iters % output_freq == 0))
         {
-            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t, del_t, res);
+            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t_h, del_t_h, res);
 
             if ((!no_output) && (enable_checkpoints))
-                write_checkpoint(iters, t + del_t);
+                write_checkpoint(iters, t + del_t_h);
         }
     } /* End of main loop */
 
