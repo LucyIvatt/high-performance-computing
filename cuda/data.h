@@ -20,29 +20,30 @@ extern double ylength; /* Height of simulated domain */
 
 /* CONSTANTS ONLY NEEDED ON THE GPU THAT CAN BE SET WITHOUT PARSING ARGS */
 
-extern __constant__ double tau = 0.5;	  /* Safety factor for timestep control */
-extern __constant__ int itermax = 100;	/* Maximum number of iterations in SOR */
-extern __constant__ double eps = 0.001; /* Stopping error threshold for SOR */
-extern __constant__ double omega = 1.7; /* Relaxation parameter for SOR */
-extern __constant__ double y = 0.9;		/* Gamma, Upwind differencing factor in PDE discretisation */
+__constant__ double tau = 0.5;	  /* Safety factor for timestep control */
+__constant__ int itermax = 100;	/* Maximum number of iterations in SOR */
+__constant__ double eps = 0.001; /* Stopping error threshold for SOR */
+__constant__ double omega = 1.7; /* Relaxation parameter for SOR */
+__constant__ double y = 0.9;		/* Gamma, Upwind differencing factor in PDE discretisation */
 
-extern __constant__ double Re = 500.0; /* Reynolds number */
-extern __constant__ double ui = 1.0;   /* Initial X velocity */
-extern __constant__ double vi = 0.0;   /* Initial Y velocity */
+__constant__ double Re = 500.0; /* Reynolds number */
+__constant__ double ui = 1.0;   /* Initial X velocity */
+__constant__ double vi = 0.0;   /* Initial Y velocity */
 
 /* CONSTANTS NEEDED ON BOTH GPU AND HOST DUE TO PARSED ARGUMENTS */
-extern __constant__ int u_size_x, u_size_y;
-extern __constant__ int v_size_x, v_size_y;
-extern __constant__ int p_size_x, p_size_y;
-extern __constant__ int flag_size_x, flag_size_y;
-extern __constant__ int g_size_x, g_size_y;
-extern __constant__ int f_size_x, f_size_y;
-extern __constant__ int rhs_size_x, rhs_size_y;
+__constant__ int u_size_x, u_size_y;
+__constant__ int v_size_x, v_size_y;
+__constant__ int p_size_x, p_size_y;
+__constant__ int flag_size_x, flag_size_y;
+__constant__ int g_size_x, g_size_y;
+__constant__ int f_size_x, f_size_y;
+__constant__ int rhs_size_x, rhs_size_y;
 
-extern __constant__ int imax;		  /* Number of cells horizontally */
-extern __constant__ int jmax;		  /* Number of cells vertically */
-extern __constant__ double t_end;	  /* Simulation runtime */
-extern __constant__ double delx, dely;
+__constant__ int imax;		  /* Number of cells horizontally */
+__constant__ int jmax;		  /* Number of cells vertically */
+__constant__ double t_end;	  /* Simulation runtime */
+__constant__ double delx;
+__constant__ double dely;
 
 extern int imax_h;		  /* Number of cells horizontally */
 extern int jmax_h;		  /* Number of cells vertically */

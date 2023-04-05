@@ -66,8 +66,8 @@ void allocate_arrays()
     g_size_y_h = jmax_h + 2;
     g_host = alloc_2d_array(g_size_x_h, g_size_y_h);
     g = copy_2d_array_to_gpu(g_host, g_size_x_h, g_size_y_h);
-    cudaMemcpyToSymbol(g_size_x, &g_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(g_size_y, &g_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(g_size_x, &g_size_x_h, sizeof(int));
+    cudaMemcpyToSymbol(g_size_y, &g_size_y_h, sizeof(int));
 
     p_size_x_h = imax_h + 2;
     p_size_y_h = jmax_h + 2;
