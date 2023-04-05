@@ -25,13 +25,13 @@ double ylength = 1.0; /* Height of simulated domain */
 
 /* WILL BE PASSED IN AS PARAMETERS TO KERNELS FOR ACCESS */
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-double *u, *u_host;
-double *v, *v_host;
-double *p, *p_host;
-double *rhs, *rhs_host;
-double *f, *f_host;
-double *g, *g_host;
-char *flag, *flag_host;
+double *u_host;
+double *v_host;
+double *p_host;
+double *rhs_host;
+double *f_host;
+double *g_host;
+char *flag_host;
 
 double del_t_h = 0.003; /* Duration of each timestep */
 
@@ -59,16 +59,13 @@ char *alloc_2d_char_array(int m, int n)
 	return (char *)calloc(m * n, sizeof(char));
 }
 
-double *copy_2d_array_to_gpu(double *src, int m, int n) {
-	double* gpu;
-	cudaMemcpy(gpu, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
-	return gpu;
+void copy_2d_array_to_gpu(double *dest, double *src, int m, int n) {
+	cudaMalloc((double**)&dest, m * n * sizeof(double));
+	cudaMemcpy(dest, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
 }
 
-char *copy_2d_char_array_to_gpu(char *src, int m, int n) {
-	char* gpu;
-	cudaMemcpy(gpu, src, m * n * sizeof(char), cudaMemcpyHostToDevice);
-	return gpu;
+void copy_2d_char_array_to_gpu(char*dest, char *src, int m, int n) {
+	cudaMemcpy(dest, src, m * n * sizeof(char), cudaMemcpyHostToDevice);
 }
 
 void update_host_array(double *host, double *gpu, int m, int n){

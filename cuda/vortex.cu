@@ -327,9 +327,10 @@ int main(int argc, char *argv[])
 
     allocate_arrays();
     
-    problem_set_up<<<1,1>>>(u, v, p, flag);
+    problem_set_up<<<1,1>>>();
+    cudaDeviceSynchronize();
     apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
-
+    cudaDeviceSynchronize();
     double res=0;
 
     setup_time = get_time() - setup_time;
@@ -341,25 +342,31 @@ int main(int argc, char *argv[])
     {
         if (!fixed_dt)
             set_timestep_interval<<<1,1>>>(u, v, p, rhs, f, g, flag);
+            cudaDeviceSynchronize();
 
         tentative_velocity_start = get_time();
         compute_tentative_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
         rhs_start = get_time();
         compute_rhs<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
         poisson<<<1,1>>>(u, v, p, rhs, f, g, flag, &res);
+        cudaDeviceSynchronize();
         poisson_time += get_time() - poisson_start;
 
         update_velocity_start = get_time();
         update_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         update_velocity_time += get_time() - update_velocity_start;
 
         apply_boundary_conditions_start = get_time();
         apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaDeviceSynchronize();
         apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 
         if ((iters % output_freq == 0))

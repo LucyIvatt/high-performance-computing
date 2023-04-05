@@ -42,7 +42,7 @@ __constant__ int rhs_size_x, rhs_size_y;
 __constant__ int imax;		  /* Number of cells horizontally */
 __constant__ int jmax;		  /* Number of cells vertically */
 __constant__ double t_end;	  /* Simulation runtime */
-__constant__ double delx, dely;
+__device__ double delx, dely;
 
 extern int imax_h;		  /* Number of cells horizontally */
 extern int jmax_h;		  /* Number of cells vertically */
@@ -69,7 +69,7 @@ extern double *g, *g_host;
 extern char *flag, *flag_host;
 
 __device__ int fluid_cells = 0;
-__device__ int del_t; /* Duration of each timestep */
+__device__ double del_t; /* Duration of each timestep */
 
 #define ind(i, j, m) ((i) * (m) + (j))
 
