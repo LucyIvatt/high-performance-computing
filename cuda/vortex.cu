@@ -25,7 +25,7 @@ double get_time()
  * @brief Computation of tentative velocity field (f, g)
  *
  */
-void compute_tentative_velocity()
+__global__ void compute_tentative_velocity()
 {
     for (int i = 1; i < imax; i++)
     {
@@ -101,7 +101,7 @@ void compute_tentative_velocity()
  * @brief Calculate the right hand side of the pressure equation
  *
  */
-void compute_rhs()
+__global__ void compute_rhs()
 {
     for (int i = 1; i < imax + 1; i++)
     {
@@ -124,7 +124,7 @@ void compute_rhs()
  * @return Calculated residual of the computation
  *
  */
-double poisson()
+__global__ double poisson()
 {
     double rdx2 = 1.0 / (delx * delx);
     double rdy2 = 1.0 / (dely * dely);
@@ -225,7 +225,7 @@ double poisson()
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-void update_velocity()
+__global__ void update_velocity()
 {
     for (int i = 1; i < imax - 2; i++)
     {
@@ -256,7 +256,7 @@ void update_velocity()
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-void set_timestep_interval()
+__global__ void set_timestep_interval()
 {
     /* del_t satisfying CFL conditions */
     if (tau >= 1.0e-10)
@@ -329,7 +329,9 @@ int main(int argc, char *argv[])
         print_opts();
 
     allocate_arrays();
-    problem_set_up();
+    
+    problem_set_up<<<1,1>>>();
+    apply_boundary_conditions<<<1,1>>>();
 
     double res;
 
@@ -344,23 +346,23 @@ int main(int argc, char *argv[])
             set_timestep_interval();
 
         tentative_velocity_start = get_time();
-        compute_tentative_velocity();
+        compute_tentative_velocity<<<1,1>>>();
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
         rhs_start = get_time();
-        compute_rhs();
+        compute_rhs<<<1,1>>>();
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
-        res = poisson();
+        res = poisson<<<1,1>>>();
         poisson_time += get_time() - poisson_start;
 
         update_velocity_start = get_time();
-        update_velocity();
+        update_velocity<<<1,1>>>();
         update_velocity_time += get_time() - update_velocity_start;
 
         apply_boundary_conditions_start = get_time();
-        apply_boundary_conditions();
+        apply_boundary_conditions<<<1,1>>>();
         apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 
         if ((iters % output_freq == 0))
@@ -371,6 +373,8 @@ int main(int argc, char *argv[])
                 write_checkpoint(iters, t + del_t);
         }
     } /* End of main loop */
+
+    update_host_arrays();
 
     total_time = get_time() - total_time;
 

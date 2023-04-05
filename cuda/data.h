@@ -38,24 +38,32 @@ extern double delx, dely;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 extern int u_size_x, u_size_y;
-extern double *u;
+extern double *u, *u_host;
 extern int v_size_x, v_size_y;
-extern double *v;
+extern double *v, *v_host;
 extern int p_size_x, p_size_y;
-extern double *p;
+extern double *p, *p_host;
 extern int rhs_size_x, rhs_size_y;
-extern double *rhs;
+extern double *rhs, *rhs_host;
 extern int f_size_x, f_size_y;
-extern double *f;
+extern double *f, *f_host;
 extern int g_size_x, g_size_y;
-extern double *g;
+extern double *g, *g_host;
 extern int flag_size_x, flag_size_y;
-extern char *flag;
+extern char *flag, *flag_host;
 
 #define ind(i, j, m) ((i) * (m) + (j))
 
 double *alloc_2d_array(int m, int n);
 char *alloc_2d_char_array(int m, int n);
+
+double *copy_2d_array_to_gpu(double *src, int m, int n);
+char *copy_2d_char_array_to_gpu(char *src, int m, int n);
+
+void update_host_array(double *host, double *gpu, int m, int n);
+void update_host_char_array(char *host, char *gpu, int m, int n);
+
 void free_2d_array(void *array);
+void free_gpu_array(void *array);
 
 #endif

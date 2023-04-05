@@ -30,19 +30,19 @@ int fluid_cells = 0;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
-double *u;
+double *u, *u_host;
 int v_size_x, v_size_y;
-double *v;
+double *v, *v_host;
 int p_size_x, p_size_y;
-double *p;
+double *p, *p_host;
 int rhs_size_x, rhs_size_y;
-double *rhs;
+double *rhs, *rhs_host;
 int f_size_x, f_size_y;
-double *f;
+double *f, *f_host;
 int g_size_x, g_size_y;
-double *g;
+double *g, *g_host;
 int flag_size_x, flag_size_y;
-char *flag;
+char *flag, *flag_host;
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
@@ -68,6 +68,26 @@ char *alloc_2d_char_array(int m, int n)
 	return (char *)calloc(m * n, sizeof(char));
 }
 
+double *copy_2d_array_to_gpu(double *src, int m, int n) {
+	double* gpu;
+	cudaMemcpy(gpu, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
+	return gpu;
+}
+
+char *copy_2d_char_array_to_gpu(char *src, int m, int n) {
+	char* gpu;
+	cudaMemcpy(gpu, src, m * n * sizeof(char), cudaMemcpyHostToDevice);
+	return gpu;
+}
+
+void update_host_array(double *host, double *gpu, int m, int n){
+	cudaMemcpy(host, gpu, m * n *sizeof(double), cudaMemcpyDeviceToHost);
+}
+
+void update_host_char_array(char *host, char *gpu, int m, int n){
+	cudaMemcpy(host, gpu, m * n *sizeof(char), cudaMemcpyDeviceToHost);
+}
+
 /**
  * @brief Free a 2D array
  *
@@ -76,4 +96,8 @@ char *alloc_2d_char_array(int m, int n)
 void free_2d_array(void *array)
 {
 	free(array);
+}
+
+void free_gpu_array(void *array) {
+	cudaFree(array);
 }

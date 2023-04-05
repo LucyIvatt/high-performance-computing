@@ -6,5 +6,6 @@ void setup();
 void allocate_arrays();
 void free_arrays();
 void problem_set_up();
+void update_host_arrays();
 
 #endif

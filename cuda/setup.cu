@@ -33,25 +33,41 @@ void allocate_arrays()
     /* Allocate arrays */
     u_size_x = imax + 2;
     u_size_y = jmax + 2;
-    u = alloc_2d_array(u_size_x, u_size_y);
+    u_host = alloc_2d_array(u_size_x, u_size_y);
+    u = copy_2d_array_to_gpu(u_host, u_size_x, u_size_y);
+
+
     v_size_x = imax + 2;
     v_size_y = jmax + 2;
-    v = alloc_2d_array(v_size_x, v_size_y);
+    v_host = alloc_2d_array(v_size_x, v_size_y);
+    v = copy_2d_array_to_gpu(v_host, v_size_x, v_size_y);
+
+
     f_size_x = imax + 2;
     f_size_y = jmax + 2;
-    f = alloc_2d_array(f_size_x, f_size_y);
+    f_host = alloc_2d_array(f_size_x, f_size_y);
+    f = copy_2d_array_to_gpu(f_host, f_size_x, f_size_y);
+
+
     g_size_x = imax + 2;
     g_size_y = jmax + 2;
-    g = alloc_2d_array(g_size_x, g_size_y);
+    g_host = alloc_2d_array(g_size_x, g_size_y);
+    g = copy_2d_array_to_gpu(g_host, g_size_x, g_size_y);
+
     p_size_x = imax + 2;
     p_size_y = jmax + 2;
-    p = alloc_2d_array(p_size_x, p_size_y);
+    p_host = alloc_2d_array(p_size_x, p_size_y);
+    p = copy_2d_array_to_gpu(p_host, p_size_x, p_size_y);
+
     rhs_size_x = imax + 2;
     rhs_size_y = jmax + 2;
-    rhs = alloc_2d_array(rhs_size_x, rhs_size_y);
+    rhs_host = alloc_2d_array(rhs_size_x, rhs_size_y);
+    rhs = copy_2d_array_to_gpu(rhs_host, rhs_size_x, rhs_size_y);
+
     flag_size_x = imax + 2;
     flag_size_y = jmax + 2;
-    flag = alloc_2d_char_array(flag_size_x, flag_size_y);
+    flag_host = alloc_2d_char_array(flag_size_x, flag_size_y);
+    flag = copy_2d_char_array_to_gpu(flag_host, flag_size_x, flag_size_y);
 
     if (!u || !v || !f || !g || !p || !rhs || !flag)
     {
@@ -60,19 +76,37 @@ void allocate_arrays()
     }
 }
 
+void update_host_arrays() {
+    update_host_array(u_host, u, u_size_x, u_size_y);
+    update_host_array(v_host, v, v_size_x, v_size_y);
+    update_host_array(f_host, f, f_size_x, f_size_y);
+    update_host_array(g_host, g, g_size_x, g_size_y);
+    update_host_array(p_host, p, p_size_x, p_size_y);
+    update_host_array(rhs_host, rhs, rhs_size_x, rhs_size_y);
+    update_host_char_array(flag_host, flag, flag_size_x, flag_size_y);
+}
+
 /**
  * @brief Free all of the arrays used for the computation.
  *
  */
 void free_arrays()
 {
-    free_2d_array((void *)u);
-    free_2d_array((void *)v);
-    free_2d_array((void *)f);
-    free_2d_array((void *)g);
-    free_2d_array((void *)p);
-    free_2d_array((void *)rhs);
-    free_2d_array((void *)flag);
+    free_2d_array((void *)u_host);
+    free_2d_array((void *)v_host);
+    free_2d_array((void *)f_host);
+    free_2d_array((void *)g_host);
+    free_2d_array((void *)p_host);
+    free_2d_array((void *)rhs_host);
+    free_2d_array((void *)flag_host);
+
+    free_gpu_array((void *)u);
+    free_gpu_array((void *)v);
+    free_gpu_array((void *)f);
+    free_gpu_array((void *)g);
+    free_gpu_array((void *)p);
+    free_gpu_array((void *)rhs);
+    free_gpu_array((void *)flag);
 }
 
 /**
@@ -80,7 +114,7 @@ void free_arrays()
  * marking any obstacle cells and the edge cells as boundaries. The cells
  * adjacent to boundary cells have their relevant flags set too.
  */
-void problem_set_up()
+__global__ void problem_set_up()
 {
     for (int i = 0; i < imax + 2; i++)
     {
@@ -140,6 +174,4 @@ void problem_set_up()
             }
         }
     }
-
-    apply_boundary_conditions();
 }
