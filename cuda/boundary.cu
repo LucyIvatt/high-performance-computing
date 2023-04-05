@@ -6,7 +6,7 @@
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
  */
-__global__ void apply_boundary_conditions()
+__global__ void apply_boundary_conditions(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
 {
     for (int j = 0; j < jmax + 2; j++)
     {

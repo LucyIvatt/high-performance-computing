@@ -90,7 +90,7 @@ void allocate_arrays()
     cudaMemcpyToSymbol(flag_size_x, &flag_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(flag_size_y, &flag_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
-    if (!u || !v || !f || !g || !p || !rhs || !flag)
+    if (!u_host || !v_host || !f_host || !g_host || !p_host || !rhs_host || !flag_host)
     {
         fprintf(stderr, "Couldn't allocate memory for matrices.\n");
         exit(1);
@@ -135,7 +135,7 @@ void free_arrays()
  * marking any obstacle cells and the edge cells as boundaries. The cells
  * adjacent to boundary cells have their relevant flags set too.
  */
-__global__ void problem_set_up(double* u, double* v, double* p, char* flag, int fluid_cells)
+__global__ void problem_set_up(double* u, double* v, double* p, char* flag)
 {
     for (int i = 0; i < imax + 2; i++)
     {

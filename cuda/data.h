@@ -15,8 +15,8 @@
 #define C_F 0x0010 /* This cell is a fluid cell */
 
 /* CONSTANTS ONLY NEEDED ON HOST*/
-extern double xlength = 4.0; /* Width of simulated domain */
-extern double ylength = 1.0; /* Height of simulated domain */
+extern double xlength; /* Width of simulated domain */
+extern double ylength; /* Height of simulated domain */
 
 /* CONSTANTS ONLY NEEDED ON THE GPU THAT CAN BE SET WITHOUT PARSING ARGS */
 
@@ -42,7 +42,6 @@ __constant__ int rhs_size_x, rhs_size_y;
 __constant__ int imax;		  /* Number of cells horizontally */
 __constant__ int jmax;		  /* Number of cells vertically */
 __constant__ double t_end;	  /* Simulation runtime */
-__constant__ double del_t; /* Duration of each timestep */
 __constant__ double delx, dely;
 
 extern int imax_h;		  /* Number of cells horizontally */
@@ -69,7 +68,8 @@ extern double *f, *f_host;
 extern double *g, *g_host;
 extern char *flag, *flag_host;
 
-extern int fluid_cells;
+__device__ int fluid_cells = 0;
+__device__ int del_t; /* Duration of each timestep */
 
 #define ind(i, j, m) ((i) * (m) + (j))
 

@@ -9,7 +9,6 @@
 int imax_h = 512;		  /* Number of cells horizontally */
 int jmax_h = 128;		  /* Number of cells vertically */
 double t_end_h = 5.0;	  /* Simulation runtime */
-double del_t_h = 0.003; /* Duration of each timestep */
 double delx_h, dely_h;
 
 int u_size_x_h, u_size_y_h;
@@ -19,6 +18,10 @@ int flag_size_x_h, flag_size_y_h;
 int g_size_x_h, g_size_y_h;
 int f_size_x_h, f_size_y_h;
 int rhs_size_x_h, rhs_size_y_h;
+
+/* CONSTANTS ONLY NEEDED ON HOST*/
+double xlength = 4.0; /* Width of simulated domain */
+double ylength = 1.0; /* Height of simulated domain */
 
 /* WILL BE PASSED IN AS PARAMETERS TO KERNELS FOR ACCESS */
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
@@ -30,7 +33,7 @@ double *f, *f_host;
 double *g, *g_host;
 char *flag, *flag_host;
 
-int fluid_cells = 0;
+double del_t_h = 0.003; /* Duration of each timestep */
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets

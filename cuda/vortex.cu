@@ -25,7 +25,7 @@ double get_time()
  * @brief Computation of tentative velocity field (f, g)
  *
  */
-__global__ void compute_tentative_velocity()
+__global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
 {
     for (int i = 1; i < imax; i++)
     {
@@ -101,7 +101,7 @@ __global__ void compute_tentative_velocity()
  * @brief Calculate the right hand side of the pressure equation
  *
  */
-__global__ void compute_rhs()
+__global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
 {
     for (int i = 1; i < imax + 1; i++)
     {
@@ -124,7 +124,7 @@ __global__ void compute_rhs()
  * @return Calculated residual of the computation
  *
  */
-__global__ double poisson()
+__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag, double* res)
 {
     double rdx2 = 1.0 / (delx * delx);
     double rdy2 = 1.0 / (dely * dely);
@@ -151,7 +151,6 @@ __global__ double poisson()
 
     /* Red/Black SOR-iteration */
     int iter;
-    double res = 0.0;
     for (iter = 0; iter < itermax; iter++)
     {
         for (int rb = 0; rb < 2; rb++)
@@ -207,25 +206,23 @@ __global__ double poisson()
                                   eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
                                      rdy2 -
                                  rhs[ind(i, j, rhs_size_y)];
-                    res += add * add;
+                    *res += add * add;
                 }
             }
         }
-        res = sqrt(res / fluid_cells) / p0;
+        *res = sqrt(*res / fluid_cells) / p0;
 
         /* convergence? */
-        if (res < eps)
+        if (*res < eps)
             break;
     }
-
-    return res;
 }
 
 /**
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-__global__ void update_velocity()
+__global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
 {
     for (int i = 1; i < imax - 2; i++)
     {
@@ -256,7 +253,7 @@ __global__ void update_velocity()
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-__global__ void set_timestep_interval()
+__global__ void set_timestep_interval(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
 {
     /* del_t satisfying CFL conditions */
     if (tau >= 1.0e-10)
@@ -330,10 +327,10 @@ int main(int argc, char *argv[])
 
     allocate_arrays();
     
-    problem_set_up<<<1,1>>>();
-    apply_boundary_conditions<<<1,1>>>();
+    problem_set_up<<<1,1>>>(u, v, p, flag);
+    apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
 
-    double res;
+    double res=0;
 
     setup_time = get_time() - setup_time;
 
@@ -343,26 +340,26 @@ int main(int argc, char *argv[])
     for (t = 0.0; t < t_end; t += del_t, iters++)
     {
         if (!fixed_dt)
-            set_timestep_interval();
+            set_timestep_interval<<<1,1>>>(u, v, p, rhs, f, g, flag);
 
         tentative_velocity_start = get_time();
-        compute_tentative_velocity<<<1,1>>>();
+        compute_tentative_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
         rhs_start = get_time();
-        compute_rhs<<<1,1>>>();
+        compute_rhs<<<1,1>>>(u, v, p, rhs, f, g, flag);
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
-        res = poisson<<<1,1>>>();
+        poisson<<<1,1>>>(u, v, p, rhs, f, g, flag, &res);
         poisson_time += get_time() - poisson_start;
 
         update_velocity_start = get_time();
-        update_velocity<<<1,1>>>();
+        update_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
         update_velocity_time += get_time() - update_velocity_start;
 
         apply_boundary_conditions_start = get_time();
-        apply_boundary_conditions<<<1,1>>>();
+        apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
         apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 
         if ((iters % output_freq == 0))

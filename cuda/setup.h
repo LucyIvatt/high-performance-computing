@@ -5,7 +5,7 @@ void set_defaults();
 void setup();
 void allocate_arrays();
 void free_arrays();
-void problem_set_up();
+__global__ void problem_set_up(double* u, double* v, double* p, char* flag);
 void update_host_arrays();
 
 #endif
