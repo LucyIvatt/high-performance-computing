@@ -20,8 +20,16 @@ void set_defaults()
  */
 void setup()
 {
-    delx = xlength / imax;
-    dely = ylength / jmax;
+    delx_h = xlength / imax_h;
+    dely_h = ylength / jmax_h;
+
+    cudaMemcpyToSymbol(delx, &delx_h, sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(dely, &dely_h, sizeof(double), cudaMemcpyHostToDevice);
+
+    cudaMemcpyToSymbol(imax, &imax_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(jmax, &jmax_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(t_end, &t_end_h, sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(del_t, &del_t_h, sizeof(double), cudaMemcpyHostToDevice);
 }
 
 /**
@@ -31,43 +39,56 @@ void setup()
 void allocate_arrays()
 {
     /* Allocate arrays */
-    u_size_x = imax + 2;
-    u_size_y = jmax + 2;
-    u_host = alloc_2d_array(u_size_x, u_size_y);
-    u = copy_2d_array_to_gpu(u_host, u_size_x, u_size_y);
+    u_size_x_h = imax_h + 2;
+    u_size_y_h = jmax_h + 2;
+    u_host = alloc_2d_array(u_size_x_h, u_size_y_h);
+    u = copy_2d_array_to_gpu(u_host, u_size_x_h, u_size_y_h);
+    cudaMemcpyToSymbol(u_size_x, &u_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(u_size_y, &u_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
+
+    v_size_x_h = imax_h + 2;
+    v_size_y_h = jmax_h + 2;
+    v_host = alloc_2d_array(v_size_x_h, v_size_y_h);
+    v = copy_2d_array_to_gpu(v_host, v_size_x_h, v_size_y_h);
+    cudaMemcpyToSymbol(v_size_x, &v_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(v_size_y, &v_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
 
-    v_size_x = imax + 2;
-    v_size_y = jmax + 2;
-    v_host = alloc_2d_array(v_size_x, v_size_y);
-    v = copy_2d_array_to_gpu(v_host, v_size_x, v_size_y);
+    f_size_x_h = imax_h + 2;
+    f_size_y_h = jmax_h + 2;
+    f_host = alloc_2d_array(f_size_x_h, f_size_y_h);
+    f = copy_2d_array_to_gpu(f_host, f_size_x_h, f_size_y_h);
+    cudaMemcpyToSymbol(f_size_x, &f_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(f_size_y, &f_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
 
-    f_size_x = imax + 2;
-    f_size_y = jmax + 2;
-    f_host = alloc_2d_array(f_size_x, f_size_y);
-    f = copy_2d_array_to_gpu(f_host, f_size_x, f_size_y);
+    g_size_x_h = imax_h + 2;
+    g_size_y_h = jmax_h + 2;
+    g_host = alloc_2d_array(g_size_x_h, g_size_y_h);
+    g = copy_2d_array_to_gpu(g_host, g_size_x_h, g_size_y_h);
+    cudaMemcpyToSymbol(g_size_x, &g_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(g_size_y, &g_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
+    p_size_x_h = imax_h + 2;
+    p_size_y_h = jmax_h + 2;
+    p_host = alloc_2d_array(p_size_x_h, p_size_y_h);
+    p = copy_2d_array_to_gpu(p_host, p_size_x_h, p_size_y_h);
+    cudaMemcpyToSymbol(p_size_x, &p_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(p_size_y, &p_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
-    g_size_x = imax + 2;
-    g_size_y = jmax + 2;
-    g_host = alloc_2d_array(g_size_x, g_size_y);
-    g = copy_2d_array_to_gpu(g_host, g_size_x, g_size_y);
+    rhs_size_x_h = imax_h + 2;
+    rhs_size_y_h = jmax_h + 2;
+    rhs_host = alloc_2d_array(rhs_size_x_h, rhs_size_y_h);
+    rhs = copy_2d_array_to_gpu(rhs_host, rhs_size_x_h, rhs_size_y_h);
+    cudaMemcpyToSymbol(rhs_size_x, &rhs_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(rhs_size_y, &rhs_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
-    p_size_x = imax + 2;
-    p_size_y = jmax + 2;
-    p_host = alloc_2d_array(p_size_x, p_size_y);
-    p = copy_2d_array_to_gpu(p_host, p_size_x, p_size_y);
-
-    rhs_size_x = imax + 2;
-    rhs_size_y = jmax + 2;
-    rhs_host = alloc_2d_array(rhs_size_x, rhs_size_y);
-    rhs = copy_2d_array_to_gpu(rhs_host, rhs_size_x, rhs_size_y);
-
-    flag_size_x = imax + 2;
-    flag_size_y = jmax + 2;
-    flag_host = alloc_2d_char_array(flag_size_x, flag_size_y);
-    flag = copy_2d_char_array_to_gpu(flag_host, flag_size_x, flag_size_y);
+    flag_size_x_h = imax_h + 2;
+    flag_size_y_h = jmax_h + 2;
+    flag_host = alloc_2d_char_array(flag_size_x_h, flag_size_y_h);
+    flag = copy_2d_char_array_to_gpu(flag_host, flag_size_x_h, flag_size_y_h);
+    cudaMemcpyToSymbol(flag_size_x, &flag_size_x_h, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(flag_size_y, &flag_size_y_h, sizeof(int), cudaMemcpyHostToDevice);
 
     if (!u || !v || !f || !g || !p || !rhs || !flag)
     {
@@ -77,13 +98,13 @@ void allocate_arrays()
 }
 
 void update_host_arrays() {
-    update_host_array(u_host, u, u_size_x, u_size_y);
-    update_host_array(v_host, v, v_size_x, v_size_y);
-    update_host_array(f_host, f, f_size_x, f_size_y);
-    update_host_array(g_host, g, g_size_x, g_size_y);
-    update_host_array(p_host, p, p_size_x, p_size_y);
-    update_host_array(rhs_host, rhs, rhs_size_x, rhs_size_y);
-    update_host_char_array(flag_host, flag, flag_size_x, flag_size_y);
+    update_host_array(u_host, u, u_size_x_h, u_size_y_h);
+    update_host_array(v_host, v, v_size_x_h, v_size_y_h);
+    update_host_array(f_host, f, f_size_x_h, f_size_y_h);
+    update_host_array(g_host, g, g_size_x_h, g_size_y_h);
+    update_host_array(p_host, p, p_size_x_h, p_size_y_h);
+    update_host_array(rhs_host, rhs, rhs_size_x_h, rhs_size_y_h);
+    update_host_char_array(flag_host, flag, flag_size_x_h, flag_size_y_h);
 }
 
 /**
@@ -114,7 +135,7 @@ void free_arrays()
  * marking any obstacle cells and the edge cells as boundaries. The cells
  * adjacent to boundary cells have their relevant flags set too.
  */
-__global__ void problem_set_up()
+__global__ void problem_set_up(double* u, double* v, double* p, char* flag, int fluid_cells)
 {
     for (int i = 0; i < imax + 2; i++)
     {

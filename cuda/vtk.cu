@@ -93,20 +93,20 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "%d\n", iters);
 
     // Write out the dimensions of the grid
-    fprintf(f, "DIMENSIONS %d %d 1\n", u_size_x, u_size_y);
+    fprintf(f, "DIMENSIONS %d %d 1\n", u_size_x_h, u_size_y_h);
     fprintf(f, "ORIGIN 0 0 0\n");
     fprintf(f, "SPACING 1 1 1\n");
 
     // Write out the u variable
-    int points = u_size_x * u_size_y;
+    int points = u_size_x_h * u_size_y_h;
     fprintf(f, "POINT_DATA %d\n", points);
     fprintf(f, "SCALARS u double 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < u_size_y; j++)
+    for (int j = 0; j < u_size_y_h; j++)
     {
-        for (int i = 0; i < u_size_x; i++)
-            fprintf(f, "%.12e ", u[ind(i, j, u_size_y)]);
+        for (int i = 0; i < u_size_x_h; i++)
+            fprintf(f, "%.12e ", u[ind(i, j, u_size_y_h)]);
         fprintf(f, "\n");
     }
 
@@ -114,10 +114,10 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "\nSCALARS v double 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < v_size_y; j++)
+    for (int j = 0; j < v_size_y_h; j++)
     {
-        for (int i = 0; i < v_size_x; i++)
-            fprintf(f, "%.12e ", v[ind(i, j, v_size_y)]);
+        for (int i = 0; i < v_size_x_h; i++)
+            fprintf(f, "%.12e ", v[ind(i, j, v_size_y_h)]);
         fprintf(f, "\n");
     }
 
@@ -125,10 +125,10 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "\nSCALARS p double 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < p_size_y; j++)
+    for (int j = 0; j < p_size_y_h; j++)
     {
-        for (int i = 0; i < p_size_x; i++)
-            fprintf(f, "%.12e ", p[ind(i, j, p_size_y)]);
+        for (int i = 0; i < p_size_x_h; i++)
+            fprintf(f, "%.12e ", p[ind(i, j, p_size_y_h)]);
         fprintf(f, "\n");
     }
 
@@ -136,10 +136,10 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "\nSCALARS flag int 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < flag_size_y; j++)
+    for (int j = 0; j < flag_size_y_h; j++)
     {
-        for (int i = 0; i < flag_size_x; i++)
-            fprintf(f, "%d ", flag[ind(i, j, flag_size_y)]);
+        for (int i = 0; i < flag_size_x_h; i++)
+            fprintf(f, "%d ", flag[ind(i, j, flag_size_y_h)]);
         fprintf(f, "\n");
     }
 

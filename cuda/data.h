@@ -14,43 +14,62 @@
 
 #define C_F 0x0010 /* This cell is a fluid cell */
 
-extern double xlength; /* Width of simulated domain */
-extern double ylength; /* Height of simulated domain */
-extern int imax;       /* Number of cells horizontally */
-extern int jmax;       /* Number of cells vertically */
+/* CONSTANTS ONLY NEEDED ON HOST*/
+extern double xlength = 4.0; /* Width of simulated domain */
+extern double ylength = 1.0; /* Height of simulated domain */
 
-extern double t_end; /* Simulation runtime */
-extern double del_t; /* Duration of each timestep */
-extern double tau;   /* Safety factor for timestep control */
+/* CONSTANTS ONLY NEEDED ON THE GPU THAT CAN BE SET WITHOUT PARSING ARGS */
 
-extern int itermax;  /* Maximum number of iterations in SOR */
-extern double eps;   /* Stopping error threshold for SOR */
-extern double omega; /* Relaxation parameter for SOR */
-extern double y;     /* Gamma, Upwind differencing factor in PDE */
+__constant__ double tau = 0.5;	  /* Safety factor for timestep control */
+__constant__ int itermax = 100;	/* Maximum number of iterations in SOR */
+__constant__ double eps = 0.001; /* Stopping error threshold for SOR */
+__constant__ double omega = 1.7; /* Relaxation parameter for SOR */
+__constant__ double y = 0.9;		/* Gamma, Upwind differencing factor in PDE discretisation */
 
-extern double Re; /* Reynolds number */
-extern double ui; /* Initial X velocity */
-extern double vi; /* Initial Y velocity */
+__constant__ double Re = 500.0; /* Reynolds number */
+__constant__ double ui = 1.0;   /* Initial X velocity */
+__constant__ double vi = 0.0;   /* Initial Y velocity */
+
+/* CONSTANTS NEEDED ON BOTH GPU AND HOST DUE TO PARSED ARGUMENTS */
+__constant__ int u_size_x, u_size_y;
+__constant__ int v_size_x, v_size_y;
+__constant__ int p_size_x, p_size_y;
+__constant__ int flag_size_x, flag_size_y;
+__constant__ int g_size_x, g_size_y;
+__constant__ int f_size_x, f_size_y;
+__constant__ int rhs_size_x, rhs_size_y;
+
+__constant__ int imax;		  /* Number of cells horizontally */
+__constant__ int jmax;		  /* Number of cells vertically */
+__constant__ double t_end;	  /* Simulation runtime */
+__constant__ double del_t; /* Duration of each timestep */
+__constant__ double delx, dely;
+
+extern int imax_h;		  /* Number of cells horizontally */
+extern int jmax_h;		  /* Number of cells vertically */
+extern double t_end_h;	  /* Simulation runtime */
+extern double del_t_h; /* Duration of each timestep */
+extern double delx_h, dely_h;
+
+extern int u_size_x_h, u_size_y_h;
+extern int v_size_x_h, v_size_y_h;
+extern int p_size_x_h, p_size_y_h;
+extern int flag_size_x_h, flag_size_y_h;
+extern int g_size_x_h, g_size_y_h;
+extern int f_size_x_h, f_size_y_h;
+extern int rhs_size_x_h, rhs_size_y_h;
+
+/* WILL BE PASSED IN AS PARAMETERS TO KERNELS FOR ACCESS */
+// Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
+extern double *u, *u_host;
+extern double *v, *v_host;
+extern double *p, *p_host;
+extern double *rhs, *rhs_host;
+extern double *f, *f_host;
+extern double *g, *g_host;
+extern char *flag, *flag_host;
 
 extern int fluid_cells;
-
-extern double delx, dely;
-
-// Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-extern int u_size_x, u_size_y;
-extern double *u, *u_host;
-extern int v_size_x, v_size_y;
-extern double *v, *v_host;
-extern int p_size_x, p_size_y;
-extern double *p, *p_host;
-extern int rhs_size_x, rhs_size_y;
-extern double *rhs, *rhs_host;
-extern int f_size_x, f_size_y;
-extern double *f, *f_host;
-extern int g_size_x, g_size_y;
-extern double *g, *g_host;
-extern int flag_size_x, flag_size_y;
-extern char *flag, *flag_host;
 
 #define ind(i, j, m) ((i) * (m) + (j))
 

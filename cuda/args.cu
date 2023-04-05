@@ -68,17 +68,17 @@ void parse_args(int argc, char *argv[])
 		switch (c)
 		{
 		case 'x':
-			imax = atoi(optarg);
+			imax_h = atoi(optarg);
 			break;
 		case 'y':
-			jmax = atoi(optarg);
+			jmax_h = atoi(optarg);
 			break;
 		case 't':
-			t_end = atof(optarg);
+			t_end_h = atof(optarg);
 			break;
 		case 'd':
-			fixed_dt = 1;
-			del_t = atof(optarg);
+			fixed_dt= 1;
+			del_t_h = atof(optarg);
 			break;
 		case 'f':
 			output_freq = atoi(optarg);
@@ -112,11 +112,11 @@ void print_opts()
 	printf("=======================================\n");
 	printf("Started with the following options\n");
 	printf("=======================================\n");
-	printf("  del-t            = %14lf\n", del_t);
-	printf("  cellx            = %14d\n", imax);
-	printf("  celly            = %14d\n", jmax);
+	printf("  del-t            = %14lf\n", del_t_h);
+	printf("  cellx            = %14d\n", imax_h);
+	printf("  celly            = %14d\n", jmax_h);
 	printf("  freq             = %14d\n", output_freq);
-	printf("  endtime          = %14.12lf\n", t_end);
+	printf("  endtime          = %14.12lf\n", t_end_h);
 	printf("  noio             = %14d\n", no_output);
 	printf("  output           = %s\n", get_basename());
 	printf("  checkpoint       = %14d\n", enable_checkpoints);

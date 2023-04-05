@@ -6,43 +6,31 @@
 #include "vtk.h"
 #include "data.h"
 
-double xlength = 4.0; /* Width of simulated domain */
-double ylength = 1.0; /* Height of simulated domain */
-int imax = 512;		  /* Number of cells horizontally */
-int jmax = 128;		  /* Number of cells vertically */
+int imax_h = 512;		  /* Number of cells horizontally */
+int jmax_h = 128;		  /* Number of cells vertically */
+double t_end_h = 5.0;	  /* Simulation runtime */
+double del_t_h = 0.003; /* Duration of each timestep */
+double delx_h, dely_h;
 
-double t_end = 5.0;	  /* Simulation runtime */
-double del_t = 0.003; /* Duration of each timestep */
-double tau = 0.5;	  /* Safety factor for timestep control */
+int u_size_x_h, u_size_y_h;
+int v_size_x_h, v_size_y_h;
+int p_size_x_h, p_size_y_h;
+int flag_size_x_h, flag_size_y_h;
+int g_size_x_h, g_size_y_h;
+int f_size_x_h, f_size_y_h;
+int rhs_size_x_h, rhs_size_y_h;
 
-int itermax = 100;	/* Maximum number of iterations in SOR */
-double eps = 0.001; /* Stopping error threshold for SOR */
-double omega = 1.7; /* Relaxation parameter for SOR */
-double y = 0.9;		/* Gamma, Upwind differencing factor in PDE discretisation */
-
-double Re = 500.0; /* Reynolds number */
-double ui = 1.0;   /* Initial X velocity */
-double vi = 0.0;   /* Initial Y velocity */
-
-double delx, dely;
+/* WILL BE PASSED IN AS PARAMETERS TO KERNELS FOR ACCESS */
+// Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
+double *u, *u_host;
+double *v, *v_host;
+double *p, *p_host;
+double *rhs, *rhs_host;
+double *f, *f_host;
+double *g, *g_host;
+char *flag, *flag_host;
 
 int fluid_cells = 0;
-
-// Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-int u_size_x, u_size_y;
-double *u, *u_host;
-int v_size_x, v_size_y;
-double *v, *v_host;
-int p_size_x, p_size_y;
-double *p, *p_host;
-int rhs_size_x, rhs_size_y;
-double *rhs, *rhs_host;
-int f_size_x, f_size_y;
-double *f, *f_host;
-int g_size_x, g_size_y;
-double *g, *g_host;
-int flag_size_x, flag_size_y;
-char *flag, *flag_host;
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
