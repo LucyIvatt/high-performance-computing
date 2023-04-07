@@ -1,10 +1,10 @@
 CC=nvcc
-CFLAGS=-O0 -g 
+CFLAGS=-O0 -g -rdc=true -G
 LIBFLAGS=-lm
 
 OBJDIR = obj
 
-_OBJ = args.o data.o setup.o vtk.o boundary.o vortex.o
+_OBJ = args.o data.o setup.o vtk.o vortex.o kernels.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 .PHONY: directories

@@ -3,8 +3,7 @@
 
 #include "data.h"
 #include "vtk.h"
-#include "boundary.h"
-
+#include "kernels.cuh"
 
 /**
  * @brief Set up some default values before arguments are parsed.
@@ -132,69 +131,3 @@ void free_arrays()
     free_gpu_array((void *)flag);
 }
 
-/**
- * @brief Initialise the velocity arrays and then initialize the flag array,
- * marking any obstacle cells and the edge cells as boundaries. The cells
- * adjacent to boundary cells have their relevant flags set too.
- */
-__global__ void problem_set_up(double* u, double* v, double* p, char* flag)
-{
-    for (int i = 0; i < imax + 2; i++)
-    {
-        for (int j = 0; j < jmax + 2; j++)
-        {
-            u[ind(i, j, u_size_y)] = ui;
-            v[ind(i, j, v_size_y)] = vi;
-            p[ind(i, j, p_size_y)] = 0.0;
-        }
-    }
-
-    /* Mark a circular obstacle as boundary cells, the rest as fluid */
-    double mx = 20.0 / 41.0 * jmax * dely;
-    double my = mx;
-    double rad1 = 5.0 / 41.0 * jmax * dely;
-    for (int i = 1; i <= imax; i++)
-    {
-        for (int j = 1; j <= jmax; j++)
-        {
-            double x = (i - 0.5) * delx - mx;
-            double y = (j - 0.5) * dely - my;
-            flag[ind(i, j, flag_size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
-        }
-    }
-
-    /* Mark the north & south boundary cells */
-    for (int i = 0; i <= imax + 1; i++)
-    {
-        flag[ind(i, 0, flag_size_y)] = C_B;
-        flag[ind(i, jmax + 1, flag_size_y)] = C_B;
-    }
-    /* Mark the east and west boundary cells */
-    for (int j = 1; j <= jmax; j++)
-    {
-        flag[ind(0, j, flag_size_y)] = C_B;
-        flag[ind(imax + 1, j, flag_size_y)] = C_B;
-    }
-
-    fluid_cells = imax * jmax;
-
-    /* flags for boundary cells */
-    for (int i = 1; i <= imax; i++)
-    {
-        for (int j = 1; j <= jmax; j++)
-        {
-            if (!(flag[ind(i, j, flag_size_y)] & C_F))
-            {
-                fluid_cells--;
-                if (flag[ind(i - 1, j, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_W;
-                if (flag[ind(i + 1, j, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_E;
-                if (flag[ind(i, j - 1, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_S;
-                if (flag[ind(i, j + 1, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_N;
-            }
-        }
-    }
-}

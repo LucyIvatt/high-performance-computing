@@ -1,0 +1,472 @@
+#include "data.h"
+
+#define ind(i, j, m) ((i) * (m) + (j))
+
+__constant__ double tau = 0.5;	  /* Safety factor for timestep control */
+__constant__ int itermax = 100;	/* Maximum number of iterations in SOR */
+__constant__ double eps = 0.001; /* Stopping error threshold for SOR */
+__constant__ double omega = 1.7; /* Relaxation parameter for SOR */
+__constant__ double y = 0.9;		/* Gamma, Upwind differencing factor in PDE discretisation */
+
+__constant__ double Re = 500.0; /* Reynolds number */
+__constant__ double ui = 1.0;   /* Initial X velocity */
+__constant__ double vi = 0.0;   /* Initial Y velocity */
+
+/* CONSTANTS NEEDED ON BOTH GPU AND HOST DUE TO PARSED ARGUMENTS */
+__constant__ int u_size_x, u_size_y;
+__constant__ int v_size_x, v_size_y;
+__constant__ int p_size_x, p_size_y;
+__constant__ int flag_size_x, flag_size_y;
+__constant__ int g_size_x, g_size_y;
+__constant__ int f_size_x, f_size_y;
+__constant__ int rhs_size_x, rhs_size_y;
+
+__constant__ int imax;		  /* Number of cells horizontally */
+__constant__ int jmax;		  /* Number of cells vertically */
+__constant__ double t_end;	  /* Simulation runtime */
+__constant__ double delx;
+__constant__ double dely;
+
+__device__ int fluid_cells = 0;
+__device__ double del_t; /* Duration of each timestep */
+
+
+/**
+ * @brief Initialise the velocity arrays and then initialize the flag array,
+ * marking any obstacle cells and the edge cells as boundaries. The cells
+ * adjacent to boundary cells have their relevant flags set too.
+ */
+__global__ void problem_set_up(double* u, double* v, double* p, char* flag)
+{
+    for (int i = 0; i < imax + 2; i++)
+    {
+        for (int j = 0; j < jmax + 2; j++)
+        {
+            u[ind(i, j, u_size_y)] = ui;
+            v[ind(i, j, v_size_y)] = vi;
+            p[ind(i, j, p_size_y)] = 0.0;
+        }
+    }
+
+    /* Mark a circular obstacle as boundary cells, the rest as fluid */
+    double mx = 20.0 / 41.0 * jmax * dely;
+    double my = mx;
+    double rad1 = 5.0 / 41.0 * jmax * dely;
+    for (int i = 1; i <= imax; i++)
+    {
+        for (int j = 1; j <= jmax; j++)
+        {
+            double x = (i - 0.5) * delx - mx;
+            double y = (j - 0.5) * dely - my;
+            flag[ind(i, j, flag_size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
+        }
+    }
+
+    /* Mark the north & south boundary cells */
+    for (int i = 0; i <= imax + 1; i++)
+    {
+        flag[ind(i, 0, flag_size_y)] = C_B;
+        flag[ind(i, jmax + 1, flag_size_y)] = C_B;
+    }
+    /* Mark the east and west boundary cells */
+    for (int j = 1; j <= jmax; j++)
+    {
+        flag[ind(0, j, flag_size_y)] = C_B;
+        flag[ind(imax + 1, j, flag_size_y)] = C_B;
+    }
+
+    fluid_cells = imax * jmax;
+
+    /* flags for boundary cells */
+    for (int i = 1; i <= imax; i++)
+    {
+        for (int j = 1; j <= jmax; j++)
+        {
+            if (!(flag[ind(i, j, flag_size_y)] & C_F))
+            {
+                fluid_cells--;
+                if (flag[ind(i - 1, j, flag_size_y)] & C_F)
+                    flag[ind(i, j, flag_size_y)] |= B_W;
+                if (flag[ind(i + 1, j, flag_size_y)] & C_F)
+                    flag[ind(i, j, flag_size_y)] |= B_E;
+                if (flag[ind(i, j - 1, flag_size_y)] & C_F)
+                    flag[ind(i, j, flag_size_y)] |= B_S;
+                if (flag[ind(i, j + 1, flag_size_y)] & C_F)
+                    flag[ind(i, j, flag_size_y)] |= B_N;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Given the boundary conditions defined by the flag matrix, update
+ * the u and v velocities. Also enforce the boundary conditions at the
+ * edges of the matrix.
+ */
+__global__ void apply_boundary_conditions(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+{
+    for (int j = 0; j < jmax + 2; j++)
+    {
+        /* Fluid freely flows in from the west */
+        u[ind(0, j, u_size_y)] = u[ind(1, j, u_size_y)];
+        v[ind(0, j, v_size_y)] = v[ind(1, j, v_size_y)];
+
+        /* Fluid freely flows out to the east */
+        u[ind(imax, j, u_size_y)] = u[ind(imax - 1, j, u_size_y)];
+        v[ind(imax + 1, j, v_size_y)] = v[ind(imax, j, v_size_y)];
+    }
+
+    for (int i = 0; i < imax + 2; i++)
+    {
+        /* The vertical velocity approaches 0 at the north and south
+         * boundaries, but fluid flows freely in the horizontal direction */
+        v[ind(i, jmax, v_size_y)] = 0.0;
+        u[ind(i, jmax + 1, u_size_y)] = u[ind(i, jmax, u_size_y)];
+
+        v[ind(i, 0, v_size_y)] = 0.0;
+        u[ind(i, 0, u_size_y)] = u[ind(i, 1, u_size_y)];
+    }
+
+    /* Apply no-slip boundary conditions to cells that are adjacent to
+     * internal obstacle cells. This forces the u and v velocity to
+     * tend towards zero in these cells.
+     */
+    for (int i = 1; i < imax + 1; i++)
+    {
+        for (int j = 1; j < jmax + 1; j++)
+        {
+            if (flag[ind(i, j, flag_size_y)] & B_NSEW)
+            {
+                switch (flag[ind(i, j, flag_size_y)])
+                {
+                case B_N:
+                    v[ind(i, j, v_size_y)] = 0.0;
+                    u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
+                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
+                    break;
+                case B_E:
+                    u[ind(i, j, u_size_y)] = 0.0;
+                    v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
+                    v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
+                    break;
+                case B_S:
+                    v[ind(i, j - 1, v_size_y)] = 0.0;
+                    u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
+                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
+                    break;
+                case B_W:
+                    u[ind(i - 1, j, u_size_y)] = 0.0;
+                    v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
+                    v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
+                    break;
+                case B_NE:
+                    v[ind(i, j, v_size_y)] = 0.0;
+                    u[ind(i, j, u_size_y)] = 0.0;
+                    v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
+                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
+                    break;
+                case B_SE:
+                    v[ind(i, j - 1, v_size_y)] = 0.0;
+                    u[ind(i, j, u_size_y)] = 0.0;
+                    v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
+                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
+                    break;
+                case B_SW:
+                    v[ind(i, j - 1, v_size_y)] = 0.0;
+                    u[ind(i - 1, j, u_size_y)] = 0.0;
+                    v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
+                    u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
+                    break;
+                case B_NW:
+                    v[ind(i, j, v_size_y)] = 0.0;
+                    u[ind(i - 1, j, u_size_y)] = 0.0;
+                    v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
+                    u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
+                    break;
+                }
+            }
+        }
+    }
+
+    /* Finally, fix the horizontal velocity at the  western edge to have
+     * a continual flow of fluid into the simulation.
+     */
+    v[ind(0, 0, v_size_y)] = 2 * vi - v[ind(1, 0, v_size_y)];
+    for (int j = 1; j < jmax + 1; j++)
+    {
+        u[ind(0, j, u_size_y)] = ui;
+        v[ind(0, j, v_size_y)] = 2 * vi - v[ind(1, j, v_size_y)];
+    }
+}
+
+/**
+ * @brief Computation of tentative velocity field (f, g)
+ *
+ */
+__global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+{
+    for (int i = 1; i < imax; i++)
+    {
+        for (int j = 1; j < jmax + 1; j++)
+        {
+            /* only if both adjacent cells are fluid cells */
+            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
+            {
+                double du2dx = ((u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) +
+                                y * fabs(u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i + 1, j, u_size_y)]) -
+                                (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) -
+                                y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] - u[ind(i, j, u_size_y)])) /
+                               (4.0 * delx);
+                double duvdy = ((v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) +
+                                y * fabs(v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i, j + 1, u_size_y)]) -
+                                (v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] + u[ind(i, j, u_size_y)]) -
+                                y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] - u[ind(i, j, u_size_y)])) /
+                               (4.0 * dely);
+                double laplu = (u[ind(i + 1, j, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i - 1, j, u_size_y)]) / delx / delx +
+                               (u[ind(i, j + 1, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i, j - 1, u_size_y)]) / dely / dely;
+
+                f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)] + del_t * (laplu / Re - du2dx - duvdy);
+            }
+            else
+            {
+                f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)];
+            }
+        }
+    }
+    for (int i = 1; i < imax + 1; i++)
+    {
+        for (int j = 1; j < jmax; j++)
+        {
+            /* only if both adjacent cells are fluid cells */
+            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
+            {
+                double duvdx = ((u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) +
+                                y * fabs(u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i + 1, j, v_size_y)]) -
+                                (u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] + v[ind(i, j, v_size_y)]) -
+                                y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] - v[ind(i, j, v_size_y)])) /
+                               (4.0 * delx);
+                double dv2dy = ((v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) +
+                                y * fabs(v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i, j + 1, v_size_y)]) -
+                                (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) -
+                                y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] - v[ind(i, j, v_size_y)])) /
+                               (4.0 * dely);
+                double laplv = (v[ind(i + 1, j, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i - 1, j, v_size_y)]) / delx / delx +
+                               (v[ind(i, j + 1, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i, j - 1, v_size_y)]) / dely / dely;
+
+                g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)] + del_t * (laplv / Re - duvdx - dv2dy);
+            }
+            else
+            {
+                g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)];
+            }
+        }
+    }
+
+    /* f & g at external boundaries */
+    for (int j = 1; j < jmax + 1; j++)
+    {
+        f[ind(0, j, f_size_y)] = u[ind(0, j, u_size_y)];
+        f[ind(imax, j, f_size_y)] = u[ind(imax, j, u_size_y)];
+    }
+    for (int i = 1; i < imax + 1; i++)
+    {
+        g[ind(i, 0, g_size_y)] = v[ind(i, 0, v_size_y)];
+        g[ind(i, jmax, g_size_y)] = v[ind(i, jmax, v_size_y)];
+    }
+}
+
+/**
+ * @brief Calculate the right hand side of the pressure equation
+ *
+ */
+__global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+{
+    for (int i = 1; i < imax + 1; i++)
+    {
+        for (int j = 1; j < jmax + 1; j++)
+        {
+            if (flag[ind(i, j, flag_size_y)] & C_F)
+            {
+                /* only for fluid and non-surface cells */
+                rhs[ind(i, j, rhs_size_y)] = ((f[ind(i, j, f_size_y)] - f[ind(i - 1, j, f_size_y)]) / delx +
+                             (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
+                            del_t;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Red/Black SOR to solve the poisson equation.
+ *
+ * @return Calculated residual of the computation
+ *
+ */
+__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag, double* res)
+{
+    double rdx2 = 1.0 / (delx * delx);
+    double rdy2 = 1.0 / (dely * dely);
+    double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
+
+    double p0 = 0.0;
+    /* Calculate sum of squares */
+    for (int i = 1; i < imax + 1; i++)
+    {
+        for (int j = 1; j < jmax + 1; j++)
+        {
+            if (flag[ind(i, j, flag_size_y)] & C_F)
+            {
+                p0 += p[ind(i, j, p_size_y)] * p[ind(i, j, p_size_y)];
+            }
+        }
+    }
+
+    p0 = sqrt(p0 / fluid_cells);
+    if (p0 < 0.0001)
+    {
+        p0 = 1.0;
+    }
+
+    /* Red/Black SOR-iteration */
+    int iter;
+    for (iter = 0; iter < itermax; iter++)
+    {
+        for (int rb = 0; rb < 2; rb++)
+        {
+            for (int i = 1; i < imax + 1; i++)
+            {
+                for (int j = 1; j < jmax + 1; j++)
+                {
+                    if ((i + j) % 2 != rb)
+                    {
+                        continue;
+                    }
+                    if (flag[ind(i, j, flag_size_y)] == (C_F | B_NSEW))
+                    {
+                        /* five point star for interior fluid cells */
+                        p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
+                                  beta_2 * ((p[ind(i + 1, j, p_size_y)] + p[ind(i - 1, j, p_size_y)]) * rdx2 + (p[ind(i, j + 1, p_size_y)] + p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
+                    }
+                    else if (flag[ind(i, j, flag_size_y)] & C_F)
+                    {
+                        /* modified star near boundary */
+
+                        double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                        double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                        double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                        double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+
+                        double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+                        p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
+                                  beta_mod * ((eps_E * p[ind(i + 1, j, p_size_y)] + eps_W * p[ind(i - 1, j, p_size_y)]) * rdx2 + (eps_N * p[ind(i, j + 1, p_size_y)] + eps_S * p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
+                    }
+                }
+            }
+        }
+
+        /* computation of residual */
+        for (int i = 1; i < imax + 1; i++)
+        {
+            for (int j = 1; j < jmax + 1; j++)
+            {
+                if (flag[ind(i, j, flag_size_y)] & C_F)
+                {
+                    double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+
+                    /* only fluid cells */
+                    double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                                  eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
+                                     rdx2 +
+                                 (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                                  eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
+                                     rdy2 -
+                                 rhs[ind(i, j, rhs_size_y)];
+                    *res += add * add;
+                }
+            }
+        }
+        *res = sqrt(*res / fluid_cells) / p0;
+
+        /* convergence? */
+        if (*res < eps)
+            break;
+    }
+}
+
+/**
+ * @brief Update the velocity values based on the tentative
+ * velocity values and the new pressure matrix
+ */
+__global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+{
+    for (int i = 1; i < imax - 2; i++)
+    {
+        for (int j = 1; j < jmax - 1; j++)
+        {
+            /* only if both adjacent cells are fluid cells */
+            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
+            {
+                u[ind(i, j, u_size_y)] = f[ind(i, j, f_size_y)] - (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / delx;
+            }
+        }
+    }
+
+    for (int i = 1; i < imax - 1; i++)
+    {
+        for (int j = 1; j < jmax - 2; j++)
+        {
+            /* only if both adjacent cells are fluid cells */
+            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
+            {
+                v[ind(i, j, v_size_y)] = g[ind(i, j, g_size_y)] - (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / dely;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
+ * conditions. Otherwise the simulation becomes unstable.
+ */
+__global__ void set_timestep_interval(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+{
+    /* del_t satisfying CFL conditions */
+    if (tau >= 1.0e-10)
+    { /* else no time stepsize control */
+        double umax = 1.0e-10;
+        double vmax = 1.0e-10;
+
+        for (int i = 0; i < imax + 2; i++)
+        {
+            for (int j = 1; j < jmax + 2; j++)
+            {
+                umax = fmax(fabs(u[ind(i, j, u_size_y)]), umax);
+            }
+        }
+
+        for (int i = 1; i < imax + 2; i++)
+        {
+            for (int j = 0; j < jmax + 2; j++)
+            {
+                vmax = fmax(fabs(v[ind(i, j, v_size_y)]), vmax);
+            }
+        }
+
+        double deltu = delx / umax;
+        double deltv = dely / vmax;
+        double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
+
+        if (deltu < deltv)
+        {
+            del_t = fmin(deltu, deltRe);
+        }
+        else
+        {
+            del_t = fmin(deltv, deltRe);
+        }
+        del_t = tau * del_t; /* multiply by safety factor */
+    }
+}
