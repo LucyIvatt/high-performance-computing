@@ -15,6 +15,7 @@
 
 struct timespec timer;
 
+
 double get_time()
 {
     clock_gettime(CLOCK_MONOTONIC, &timer);
@@ -320,7 +321,9 @@ int main(int argc, char *argv[])
 
     set_defaults();
     parse_args(argc, argv);
+
     setup();
+    cudaDeviceSynchronize();
 
     if (verbose)
         print_opts();
@@ -328,6 +331,7 @@ int main(int argc, char *argv[])
     allocate_arrays();
     
     problem_set_up<<<1,1>>>(u, v, p, flag);
+
     apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
 
     double res=0;

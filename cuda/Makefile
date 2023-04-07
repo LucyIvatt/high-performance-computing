@@ -1,5 +1,5 @@
 CC=nvcc
-CFLAGS=-O0 -g
+CFLAGS=-O0 -g 
 LIBFLAGS=-lm
 
 OBJDIR = obj
