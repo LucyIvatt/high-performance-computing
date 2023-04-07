@@ -61,8 +61,10 @@ int main(int argc, char *argv[])
     allocate_arrays();
     
     problem_set_up<<<1,1>>>(u, v, p, flag);
+    cudaDeviceSynchronize();
 
     apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
+    cudaDeviceSynchronize();
 
     double res=0;
 
@@ -89,7 +91,8 @@ int main(int argc, char *argv[])
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
-        poisson<<<1,1>>>(u, v, p, rhs, f, g, flag, &res);
+        poisson<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        cudaMemcpyFromSymbol(&residual_h, residual, sizeof(double));
         cudaDeviceSynchronize();
         poisson_time += get_time() - poisson_start;
 
@@ -105,7 +108,7 @@ int main(int argc, char *argv[])
 
         if ((iters % output_freq == 0))
         {
-            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t_h, del_t_h, res);
+            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t_h, del_t_h, residual_h);
 
             if ((!no_output) && (enable_checkpoints))
                 write_checkpoint(iters, t + del_t_h);

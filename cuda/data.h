@@ -23,6 +23,7 @@ extern int jmax_h;		  /* Number of cells vertically */
 extern double t_end_h;	  /* Simulation runtime */
 extern double del_t_h; /* Duration of each timestep */
 extern double delx_h, dely_h;
+extern double residual_h;
 
 extern int u_size_x_h, u_size_y_h;
 extern int v_size_x_h, v_size_y_h;

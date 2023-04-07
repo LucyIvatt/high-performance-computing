@@ -29,6 +29,7 @@ __constant__ double dely;
 
 __device__ int fluid_cells = 0;
 __device__ double del_t; /* Duration of each timestep */
+__device__ double residual;
 
 
 /**
@@ -302,7 +303,7 @@ __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double
  * @return Calculated residual of the computation
  *
  */
-__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag, double* res)
+__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
 {
     double rdx2 = 1.0 / (delx * delx);
     double rdy2 = 1.0 / (dely * dely);
@@ -329,6 +330,7 @@ __global__ void poisson(double* u, double* v, double* p, double* rhs, double* f,
 
     /* Red/Black SOR-iteration */
     int iter;
+    residual = 0.0;
     for (iter = 0; iter < itermax; iter++)
     {
         for (int rb = 0; rb < 2; rb++)
@@ -384,14 +386,14 @@ __global__ void poisson(double* u, double* v, double* p, double* rhs, double* f,
                                   eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
                                      rdy2 -
                                  rhs[ind(i, j, rhs_size_y)];
-                    *res += add * add;
+                    residual += add * add;
                 }
             }
         }
-        *res = sqrt(*res / fluid_cells) / p0;
+        residual = sqrt(residual / fluid_cells) / p0;
 
         /* convergence? */
-        if (*res < eps)
+        if (residual < eps)
             break;
     }
 }

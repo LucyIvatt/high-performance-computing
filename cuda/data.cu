@@ -10,6 +10,7 @@ int imax_h = 512;		  /* Number of cells horizontally */
 int jmax_h = 128;		  /* Number of cells vertically */
 double t_end_h = 5.0;	  /* Simulation runtime */
 double delx_h, dely_h;
+double residual_h;
 
 int u_size_x_h, u_size_y_h;
 int v_size_x_h, v_size_y_h;
