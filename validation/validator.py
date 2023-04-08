@@ -48,7 +48,7 @@ def compare_files(f1, f2):
     cosine_similarity = stats_dict["DOT_PROD"] / (sqrt(stats_dict["SUM_SQUARES_A"]) * sqrt(stats_dict["SUM_SQUARES_B"]))
 
     print("-----------------------------------------------")
-    print(f"Comparing original implementation ({VTK_1}) to parallel implementation ({VTK_2}):\n")
+    print(f"Comparing implementation ({VTK_1}) to parallel implementation ({VTK_2}):\n")
     for label in ["WRONG", "CLOSE", "EXACT"]:
         print(f"{label}: {stats_dict[label]}/{stats_dict['TOTAL']} - {100.0 * stats_dict[label]/stats_dict['TOTAL']:.4f}%")
     

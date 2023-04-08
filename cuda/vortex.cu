@@ -66,8 +66,6 @@ int main(int argc, char *argv[])
     apply_boundary_conditions<<<1,1>>>(u, v, p, rhs, f, g, flag);
     cudaDeviceSynchronize();
 
-    double res=0;
-
     setup_time = get_time() - setup_time;
 
     /* Main loop */
@@ -114,12 +112,12 @@ int main(int argc, char *argv[])
                 write_checkpoint(iters, t + del_t_h);
         }
     } /* End of main loop */
-
+ 
     update_host_arrays();
 
     total_time = get_time() - total_time;
 
-    printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
+    printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, residual_h);
     printf("Simulation complete.\n");
 
     fprintf(stderr, "Timing Summary\n");

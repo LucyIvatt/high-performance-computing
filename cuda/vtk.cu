@@ -106,7 +106,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < u_size_y_h; j++)
     {
         for (int i = 0; i < u_size_x_h; i++)
-            fprintf(f, "%.12e ", u[ind(i, j, u_size_y_h)]);
+            fprintf(f, "%.12e ", u_host[ind(i, j, u_size_y_h)]);
         fprintf(f, "\n");
     }
 
@@ -117,7 +117,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < v_size_y_h; j++)
     {
         for (int i = 0; i < v_size_x_h; i++)
-            fprintf(f, "%.12e ", v[ind(i, j, v_size_y_h)]);
+            fprintf(f, "%.12e ", v_host[ind(i, j, v_size_y_h)]);
         fprintf(f, "\n");
     }
 
@@ -128,7 +128,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < p_size_y_h; j++)
     {
         for (int i = 0; i < p_size_x_h; i++)
-            fprintf(f, "%.12e ", p[ind(i, j, p_size_y_h)]);
+            fprintf(f, "%.12e ", p_host[ind(i, j, p_size_y_h)]);
         fprintf(f, "\n");
     }
 
@@ -139,7 +139,7 @@ int write_vtk(char *filename, int iters, double t)
     for (int j = 0; j < flag_size_y_h; j++)
     {
         for (int i = 0; i < flag_size_x_h; i++)
-            fprintf(f, "%d ", flag[ind(i, j, flag_size_y_h)]);
+            fprintf(f, "%d ", flag_host[ind(i, j, flag_size_y_h)]);
         fprintf(f, "\n");
     }
 
