@@ -371,8 +371,16 @@ __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_bl
 	}
 
 	// write result for this block to global mem
-	if (b_tid == 0)
+	if (b_tid == 0) {
 		*p0 = final_reductions[0];
+
+        *p0 = sqrt(*p0 / fluid_cells);
+        if (*p0 < 0.0001)
+        {
+            *p0 = 1.0;
+        }
+
+    }
 }
 
 /**
@@ -386,12 +394,6 @@ __global__ void poisson(double* u, double* v, double* p, double* rhs, double* f,
     double rdx2 = 1.0 / (delx * delx);
     double rdy2 = 1.0 / (dely * dely);
     double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
-
-    *p0 = sqrt(*p0 / fluid_cells);
-    if (*p0 < 0.0001)
-    {
-        *p0 = 1.0;
-    }
 
     /* Red/Black SOR-iteration */
     int iter;
