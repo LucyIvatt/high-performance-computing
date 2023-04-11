@@ -16,20 +16,22 @@ extern __constant__ double t_end;	  /* Simulation runtime */
 extern __constant__ double delx;
 extern __constant__ double dely;
 
+extern __constant__ double rdx2, rdy2, beta_2;
+
 extern __device__ int fluid_cells;
 extern __device__ double del_t; /* Duration of each timestep */
-extern __device__ double residual;
 
 
 __global__ void problem_set_up(double* u, double* v, double* p, char* flag);
 __global__ void apply_boundary_conditions(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
-__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag, double* p0);
 __global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void set_timestep_interval(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 
 __global__ void p0_reduction_s(double *p, char *flag, double *global_reductions);
 __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y);
+
+void poisson();
 
 #endif

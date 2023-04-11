@@ -23,6 +23,17 @@ void setup()
     delx_h = xlength / imax_h;
     dely_h = ylength / jmax_h;
 
+    double rdx2_h = 1.0 / (delx_h * delx_h);
+    double rdy2_h = 1.0 / (dely_h * dely_h);
+
+    double omega_h = 1.7;
+
+    double beta_2_h = -omega_h / (2.0 * (rdx2_h + rdy2_h));
+
+    cudaMemcpyToSymbol(rdx2, &rdx2_h, sizeof(double));
+    cudaMemcpyToSymbol(rdy2, &rdy2_h, sizeof(double));
+    cudaMemcpyToSymbol(beta_2, &beta_2_h, sizeof(double));
+
     cudaMemcpyToSymbol(delx, &delx_h, sizeof(double));
     cudaMemcpyToSymbol(dely, &dely_h, sizeof(double));
 
@@ -93,6 +104,9 @@ void allocate_arrays()
 
     p0 = allocate_2d_gpu_array(1, 1);
     p0_reductions = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
+
+    residual = allocate_2d_gpu_array(1, 1);
+    residual_reductions = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
 
 
     if (!u_host || !v_host || !f_host || !g_host || !p_host || !rhs_host || !flag_host)

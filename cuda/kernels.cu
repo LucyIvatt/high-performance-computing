@@ -2,11 +2,9 @@
 
 #define ind(i, j, m) ((i) * (m) + (j))
 
-__constant__ double tau = 0.5;	  /* Safety factor for timestep control */
-__constant__ int itermax = 100;	/* Maximum number of iterations in SOR */
-__constant__ double eps = 0.001; /* Stopping error threshold for SOR */
+__constant__ double tau = 0.5;   /* Safety factor for timestep control */
 __constant__ double omega = 1.7; /* Relaxation parameter for SOR */
-__constant__ double y = 0.9;		/* Gamma, Upwind differencing factor in PDE discretisation */
+__constant__ double y = 0.9;     /* Gamma, Upwind differencing factor in PDE discretisation */
 
 __constant__ double Re = 500.0; /* Reynolds number */
 __constant__ double ui = 1.0;   /* Initial X velocity */
@@ -21,23 +19,23 @@ __constant__ int g_size_x, g_size_y;
 __constant__ int f_size_x, f_size_y;
 __constant__ int rhs_size_x, rhs_size_y;
 
-__constant__ int imax;		  /* Number of cells horizontally */
-__constant__ int jmax;		  /* Number of cells vertically */
-__constant__ double t_end;	  /* Simulation runtime */
+__constant__ double rdx2, rdy2, beta_2;
+
+__constant__ int imax;     /* Number of cells horizontally */
+__constant__ int jmax;     /* Number of cells vertically */
+__constant__ double t_end; /* Simulation runtime */
 __constant__ double delx;
 __constant__ double dely;
 
 __device__ int fluid_cells = 0;
 __device__ double del_t; /* Duration of each timestep */
-__device__ double residual;
-
 
 /**
  * @brief Initialise the velocity arrays and then initialize the flag array,
  * marking any obstacle cells and the edge cells as boundaries. The cells
  * adjacent to boundary cells have their relevant flags set too.
  */
-__global__ void problem_set_up(double* u, double* v, double* p, char* flag)
+__global__ void problem_set_up(double *u, double *v, double *p, char *flag)
 {
     for (int i = 0; i < imax + 2; i++)
     {
@@ -104,7 +102,7 @@ __global__ void problem_set_up(double* u, double* v, double* p, char* flag)
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
  */
-__global__ void apply_boundary_conditions(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+__global__ void apply_boundary_conditions(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     for (int j = 0; j < jmax + 2; j++)
     {
@@ -204,7 +202,7 @@ __global__ void apply_boundary_conditions(double* u, double* v, double* p, doubl
  * @brief Computation of tentative velocity field (f, g)
  *
  */
-__global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+__global__ void compute_tentative_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     for (int i = 1; i < imax; i++)
     {
@@ -280,7 +278,7 @@ __global__ void compute_tentative_velocity(double* u, double* v, double* p, doub
  * @brief Calculate the right hand side of the pressure equation
  *
  */
-__global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+__global__ void compute_rhs(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     for (int i = 1; i < imax + 1; i++)
     {
@@ -290,8 +288,8 @@ __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double
             {
                 /* only for fluid and non-surface cells */
                 rhs[ind(i, j, rhs_size_y)] = ((f[ind(i, j, f_size_y)] - f[ind(i - 1, j, f_size_y)]) / delx +
-                             (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
-                            del_t;
+                                              (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
+                                             del_t;
             }
         }
     }
@@ -299,146 +297,140 @@ __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double
 
 __global__ void p0_reduction_s(double *p, char *flag, double *global_reductions)
 {
-	extern __shared__ double block_reductions[];
+    extern __shared__ double block_reductions[];
 
-	int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
-	int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+    int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
+    int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
 
-	int g_tid = ind(i, j, gridDim.y * blockDim.y); // Global Thread ID
-	int array_ind = ind(i, j, jmax + 2);
-	int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
+    int g_tid = ind(i, j, gridDim.y * blockDim.y); // Global Thread ID
+    int array_ind = ind(i, j, jmax + 2);
+    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
 
-	int t_per_b = blockDim.x * blockDim.y;			  // Threads per block (rounded to nearest even number)
-	int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+    int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
+    int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
 
-	// If the thread is valid -->
-	if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
-	{
-		// copied the value from the data array into the blocks shared memory
-		if (flag[ind(i, j, jmax + 2)] & C_F)
-		{
-			block_reductions[b_tid] = p[array_ind] * p[array_ind];
-		}
-	}
-	else
-	{
-		// otherwise sets the shared memory value to 0 (so that this will never be picked if compared)
-		block_reductions[b_tid] = 0;
-	}
-	__syncthreads();
+    // If the thread is valid -->
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
+    {
+        // copied the value from the data array into the blocks shared memory
+        if (flag[ind(i, j, jmax + 2)] & C_F)
+        {
+            block_reductions[b_tid] = p[array_ind] * p[array_ind];
+        }
+    }
+    else
+    {
+        // otherwise sets the shared memory value to 0 (so that this will never be picked if compared)
+        block_reductions[b_tid] = 0;
+    }
+    __syncthreads();
 
-	// Uses sequental addressing for a reduction
-	for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
-	{
-		if (b_tid < s)
-		{
-			block_reductions[b_tid] = block_reductions[b_tid] + block_reductions[b_tid + s];
-		}
-		__syncthreads();
-	}
+    // Uses sequental addressing for a reduction
+    for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+    {
+        if (b_tid < s)
+        {
+            block_reductions[b_tid] = block_reductions[b_tid] + block_reductions[b_tid + s];
+        }
+        __syncthreads();
+    }
 
-	// write result for this block to global mem
-	if (b_tid == 0)
-		global_reductions[bid] = block_reductions[0];
+    // write result for this block to global mem
+    if (b_tid == 0)
+        global_reductions[bid] = block_reductions[0];
 }
 
 __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y)
 {
-	extern __shared__ double final_reductions[];
+    extern __shared__ double final_reductions[];
 
-	int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
+    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
 
-	int t_per_b = blockDim.x * blockDim.y;
+    int t_per_b = blockDim.x * blockDim.y;
 
-	if (b_tid < num_blocks_x * num_blocks_y)
-	{
-		final_reductions[b_tid] = global_reductions[b_tid];
-	}
-	else
-	{
-		final_reductions[b_tid] = 0;
-	}
-	__syncthreads();
+    if (b_tid < num_blocks_x * num_blocks_y)
+    {
+        final_reductions[b_tid] = global_reductions[b_tid];
+    }
+    else
+    {
+        final_reductions[b_tid] = 0;
+    }
+    __syncthreads();
 
-	// Uses sequental addressing for a reduction
-	for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
-	{
-		if (b_tid < s)
-		{
-			final_reductions[b_tid] = final_reductions[b_tid] + final_reductions[b_tid + s];
-		}
-		__syncthreads();
-	}
+    // Uses sequental addressing for a reduction
+    for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+    {
+        if (b_tid < s)
+        {
+            final_reductions[b_tid] = final_reductions[b_tid] + final_reductions[b_tid + s];
+        }
+        __syncthreads();
+    }
 
-	// write result for this block to global mem
-	if (b_tid == 0) {
-		*p0 = final_reductions[0];
+    // write result for this block to global mem
+    if (b_tid == 0)
+    {
+        *p0 = final_reductions[0];
 
         *p0 = sqrt(*p0 / fluid_cells);
         if (*p0 < 0.0001)
         {
             *p0 = 1.0;
         }
-
     }
 }
 
-/**
- * @brief Red/Black SOR to solve the poisson equation.
- *
- * @return Calculated residual of the computation
- *
- */
-__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag, double* p0)
+__global__ void star_computation(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag, double rb)
 {
-    double rdx2 = 1.0 / (delx * delx);
-    double rdy2 = 1.0 / (dely * dely);
-    double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    /* Red/Black SOR-iteration */
-    int iter;
-    residual = 0.0;
-    for (iter = 0; iter < itermax; iter++)
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
-        for (int rb = 0; rb < 2; rb++)
+        if ((i + j) % 2 == rb)
         {
-            for (int i = 1; i < imax + 1; i++)
+
+            if (flag[ind(i, j, flag_size_y)] == (C_F | B_NSEW))
             {
-                for (int j = 1; j < jmax + 1; j++)
-                {
-                    if ((i + j) % 2 != rb)
-                    {
-                        continue;
-                    }
-                    if (flag[ind(i, j, flag_size_y)] == (C_F | B_NSEW))
-                    {
-                        /* five point star for interior fluid cells */
-                        p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
-                                  beta_2 * ((p[ind(i + 1, j, p_size_y)] + p[ind(i - 1, j, p_size_y)]) * rdx2 + (p[ind(i, j + 1, p_size_y)] + p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
-                    }
-                    else if (flag[ind(i, j, flag_size_y)] & C_F)
-                    {
-                        /* modified star near boundary */
+                /* five point star for interior fluid cells */
+                p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
+                                         beta_2 * ((p[ind(i + 1, j, p_size_y)] + p[ind(i - 1, j, p_size_y)]) * rdx2 + (p[ind(i, j + 1, p_size_y)] + p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
+            }
+            else if (flag[ind(i, j, flag_size_y)] & C_F)
+            {
+                /* modified star near boundary */
 
-                        double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                        double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                        double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                        double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
 
-                        double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                        p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
-                                  beta_mod * ((eps_E * p[ind(i + 1, j, p_size_y)] + eps_W * p[ind(i - 1, j, p_size_y)]) * rdx2 + (eps_N * p[ind(i, j + 1, p_size_y)] + eps_S * p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
-                    }
-                }
+                double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+                p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
+                                         beta_mod * ((eps_E * p[ind(i + 1, j, p_size_y)] + eps_W * p[ind(i - 1, j, p_size_y)]) * rdx2 + (eps_N * p[ind(i, j + 1, p_size_y)] + eps_S * p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
             }
         }
+    }
+}
 
-        /* computation of residual */
-        for (int i = 1; i < imax + 1; i++)
-        {
-            for (int j = 1; j < jmax + 1; j++)
-            {
-                if (flag[ind(i, j, flag_size_y)] & C_F)
+__global__ void residual_reduction_s(double *p, double *rhs, char *flag, double *global_reductions)
+{
+    extern __shared__ double block_reductions[];
+
+    int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
+    int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+
+    int g_tid = ind(i, j, gridDim.y * blockDim.y); // Global Thread ID
+    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
+
+    int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
+    int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+
+    // If the thread is valid -->
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
+    {
+        if (flag[ind(i, j, flag_size_y)] & C_F)
                 {
                     double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
                     double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
@@ -453,14 +445,94 @@ __global__ void poisson(double* u, double* v, double* p, double* rhs, double* f,
                                   eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
                                      rdy2 -
                                  rhs[ind(i, j, rhs_size_y)];
-                    residual += add * add;
+                    block_reductions[b_tid] = add * add;
                 }
-            }
+    }
+    else
+    {
+        // otherwise sets the shared memory value to 0 (so that this will never be picked if compared)
+        block_reductions[b_tid] = 0;
+    }
+    __syncthreads();
+
+    // Uses sequental addressing for a reduction
+    for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+    {
+        if (b_tid < s)
+        {
+            block_reductions[b_tid] = block_reductions[b_tid] + block_reductions[b_tid + s];
         }
-        residual = sqrt(residual / fluid_cells) / *p0;
+        __syncthreads();
+    }
+
+    // write result for this block to global mem
+    if (b_tid == 0)
+        global_reductions[bid] = block_reductions[0];
+}
+
+__global__ void residual_reduction_e(double *global_reductions, double *residual, int num_blocks_x, int num_blocks_y, double* p0)
+{
+    extern __shared__ double final_reductions[];
+
+    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
+
+    int t_per_b = blockDim.x * blockDim.y;
+
+    if (b_tid < num_blocks_x * num_blocks_y)
+    {
+        final_reductions[b_tid] = global_reductions[b_tid];
+    }
+    else
+    {
+        final_reductions[b_tid] = 0;
+    }
+    __syncthreads();
+
+    // Uses sequental addressing for a reduction
+    for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+    {
+        if (b_tid < s)
+        {
+            final_reductions[b_tid] = final_reductions[b_tid] + final_reductions[b_tid + s];
+        }
+        __syncthreads();
+    }
+
+    // write result for this block to global mem
+    if (b_tid == 0)
+    {
+        *residual = final_reductions[0];
+        *residual = sqrt((double)*residual / fluid_cells) / *p0;
+    }
+}
+
+/**
+ * @brief Red/Black SOR to solve the poisson equation.
+ *
+ * @return Calculated residual of the computation
+ *
+ */
+void poisson()
+{
+    /* Red/Black SOR-iteration */
+    int iter;
+    for (iter = 0; iter < itermax; iter++)
+    {
+        // Star computation for even indicies then odd indicies
+        star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 0);
+        cudaDeviceSynchronize();
+        star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 1);
+
+        residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
+        cudaDeviceSynchronize();
+        int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
+        residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
+        cudaDeviceSynchronize();
+
+        cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
 
         /* convergence? */
-        if (residual < eps)
+        if (residual_h < eps)
             break;
     }
 }
@@ -469,7 +541,7 @@ __global__ void poisson(double* u, double* v, double* p, double* rhs, double* f,
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-__global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+__global__ void update_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     for (int i = 1; i < imax - 2; i++)
     {
@@ -500,7 +572,7 @@ __global__ void update_velocity(double* u, double* v, double* p, double* rhs, do
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-__global__ void set_timestep_interval(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+__global__ void set_timestep_interval(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     /* del_t satisfying CFL conditions */
     if (tau >= 1.0e-10)

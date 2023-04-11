@@ -9,6 +9,10 @@
 int imax_h = 512;		  /* Number of cells horizontally */
 int jmax_h = 128;		  /* Number of cells vertically */
 double t_end_h = 5.0;	  /* Simulation runtime */
+
+int itermax = 100;  /* Maximum number of iterations in SOR */
+double eps = 0.001;
+
 double delx_h, dely_h;
 double residual_h;
 
@@ -41,6 +45,9 @@ char *flag, *flag_host;
 
 double* p0;
 double* p0_reductions;
+
+double* residual;
+double* residual_reductions;
 
 double del_t_h = 0.003; /* Duration of each timestep */
 

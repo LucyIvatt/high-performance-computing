@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
         p0_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(p0_reductions, p0, numBlocks.x, numBlocks.y);
         cudaDeviceSynchronize();
-        poisson<<<1,1>>>(u, v, p, rhs, f, g, flag, p0);
+        poisson();
 
         cudaMemcpyFromSymbol(&residual_h, residual, sizeof(double));
         cudaDeviceSynchronize();

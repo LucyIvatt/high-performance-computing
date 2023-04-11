@@ -17,6 +17,8 @@
 /* CONSTANTS ONLY NEEDED ON HOST*/
 extern double xlength; /* Width of simulated domain */
 extern double ylength; /* Height of simulated domain */
+extern int itermax;  /* Maximum number of iterations in SOR */
+extern double eps;
 
 extern int imax_h;		  /* Number of cells horizontally */
 extern int jmax_h;		  /* Number of cells vertically */
@@ -24,6 +26,7 @@ extern double t_end_h;	  /* Simulation runtime */
 extern double del_t_h; /* Duration of each timestep */
 extern double delx_h, dely_h;
 extern double residual_h;
+
 
 extern dim3 threadsPerBlock;
 extern dim3 numBlocks;
@@ -48,6 +51,9 @@ extern char *flag, *flag_host;
 
 extern double* p0;
 extern double* p0_reductions;
+
+extern double* residual;
+extern double* residual_reductions;
 
 #define ind(i, j, m) ((i) * (m) + (j))
 
