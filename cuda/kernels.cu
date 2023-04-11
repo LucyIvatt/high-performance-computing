@@ -413,6 +413,35 @@ __global__ void star_computation(double *u, double *v, double *p, double *rhs, d
     }
 }
 
+__global__ void residual_s(double* residual, double* p0, char* flag, double* p, double* rhs){
+    /* computation of residual */
+        for (int i = 1; i < imax + 1; i++)
+        {
+            for (int j = 1; j < jmax + 1; j++)
+            {
+                if (flag[ind(i, j, flag_size_y)] & C_F)
+                {
+                    double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+
+                    /* only fluid cells */
+                    double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                                  eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
+                                     rdx2 +
+                                 (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                                  eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
+                                     rdy2 -
+                                 rhs[ind(i, j, rhs_size_y)];
+                    *residual += add * add;
+                }
+            }
+        }
+        *residual = sqrt(*residual / fluid_cells) / *p0;
+        printf("residual=%f\n", *residual);
+}
+
 __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double *global_reductions)
 {
     extern __shared__ double block_reductions[];
@@ -528,11 +557,13 @@ void poisson()
         cudaDeviceSynchronize();
         star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 1);
         cudaDeviceSynchronize();
+        residual_s<<<1, 1>>>(residual, p0, flag, p, rhs);
+        cudaDeviceSynchronize();
 
-        residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
-        cudaDeviceSynchronize();
-        residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
-        cudaDeviceSynchronize();
+        // residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
+        // cudaDeviceSynchronize();
+        // residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
+        // cudaDeviceSynchronize();
 
         cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
