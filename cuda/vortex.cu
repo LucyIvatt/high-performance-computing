@@ -89,14 +89,9 @@ int main(int argc, char *argv[])
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
-        p0_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, flag, p0_reductions);
-        cudaDeviceSynchronize();
-        int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
-        p0_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(p0_reductions, p0, numBlocks.x, numBlocks.y);
-        cudaDeviceSynchronize();
+        
         poisson();
 
-        cudaMemcpyFromSymbol(&residual_h, residual, sizeof(double));
         cudaDeviceSynchronize();
         poisson_time += get_time() - poisson_start;
 
