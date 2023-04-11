@@ -383,66 +383,34 @@ __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_bl
     }
 }
 
-__global__ void star_computation(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag, double* residual, double* p0)
+__global__ void star_computation(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag, int rb)
 {
-    for (int rb = 0; rb < 2; rb++)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && (i + j) % 2 == rb)
     {
-        for (int i = 1; i < imax + 1; i++)
+
+        if (flag[ind(i, j, flag_size_y)] == (C_F | B_NSEW))
         {
-            for (int j = 1; j < jmax + 1; j++)
-            {
-                if ((i + j) % 2 != rb)
-                {
-                    continue;
-                }
-                if (flag[ind(i, j, flag_size_y)] == (C_F | B_NSEW))
-                {
-                    /* five point star for interior fluid cells */
-                    p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
-                                             beta_2 * ((p[ind(i + 1, j, p_size_y)] + p[ind(i - 1, j, p_size_y)]) * rdx2 + (p[ind(i, j + 1, p_size_y)] + p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
-                }
-                else if (flag[ind(i, j, flag_size_y)] & C_F)
-                {
-                    /* modified star near boundary */
+            /* five point star for interior fluid cells */
+            p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
+                                     beta_2 * ((p[ind(i + 1, j, p_size_y)] + p[ind(i - 1, j, p_size_y)]) * rdx2 + (p[ind(i, j + 1, p_size_y)] + p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
+        }
+        else if (flag[ind(i, j, flag_size_y)] & C_F)
+        {
+            /* modified star near boundary */
 
-                    double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+            double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+            double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+            double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+            double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
 
-                    double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                    p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
-                                             beta_mod * ((eps_E * p[ind(i + 1, j, p_size_y)] + eps_W * p[ind(i - 1, j, p_size_y)]) * rdx2 + (eps_N * p[ind(i, j + 1, p_size_y)] + eps_S * p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
-                }
-            }
+            double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+            p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
+                                     beta_mod * ((eps_E * p[ind(i + 1, j, p_size_y)] + eps_W * p[ind(i - 1, j, p_size_y)]) * rdx2 + (eps_N * p[ind(i, j + 1, p_size_y)] + eps_S * p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
         }
     }
-
-    /* computation of residual */
-    for (int i = 1; i < imax + 1; i++)
-    {
-        for (int j = 1; j < jmax + 1; j++)
-        {
-            if (flag[ind(i, j, flag_size_y)] & C_F)
-            {
-                double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-
-                /* only fluid cells */
-                double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                              eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
-                                 rdx2 +
-                             (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                              eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
-                                 rdy2 -
-                             rhs[ind(i, j, rhs_size_y)];
-                *residual += add * add;
-            }
-        }
-    }
-    *residual = sqrt(*residual / fluid_cells) / *p0;;
 }
 
 __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double *global_reductions)
@@ -459,25 +427,22 @@ __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double 
     int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
 
     // If the thread is valid -->
-    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && flag[ind(i, j, flag_size_y)] & C_F)
     {
-        if (flag[ind(i, j, flag_size_y)] & C_F)
-        {
-            double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-            double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-            double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-            double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+        double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+        double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+        double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+        double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
 
-            /* only fluid cells */
-            double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                          eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
-                             rdx2 +
-                         (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                          eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
-                             rdy2 -
-                         rhs[ind(i, j, rhs_size_y)];
-            block_reductions[b_tid] = add * add;
-        }
+        /* only fluid cells */
+        double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                      eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
+                         rdx2 +
+                     (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                      eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
+                         rdy2 -
+                     rhs[ind(i, j, rhs_size_y)];
+        block_reductions[b_tid] = add * add;
     }
     else
     {
@@ -559,13 +524,15 @@ void poisson()
     for (int iter = 0; iter < itermax; iter++)
     {
         // Star computation for even indicies then odd indicies
-        star_computation<<<1, 1>>>(u, v, p, rhs, f, g, flag, residual, p0);
+        star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 0);
+        cudaDeviceSynchronize();
+        star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 1);
         cudaDeviceSynchronize();
 
-        // residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
-        // cudaDeviceSynchronize();
-        // residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
-        // cudaDeviceSynchronize();
+        residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
+        cudaDeviceSynchronize();
+        residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
+        cudaDeviceSynchronize();
 
         cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
