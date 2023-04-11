@@ -91,6 +91,10 @@ void allocate_arrays()
     cudaMemcpyToSymbol(flag_size_x, &flag_size_x_h, sizeof(int));
     cudaMemcpyToSymbol(flag_size_y, &flag_size_y_h, sizeof(int));
 
+    p0 = allocate_2d_gpu_array(1, 1);
+    p0_reductions = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
+
+
     if (!u_host || !v_host || !f_host || !g_host || !p_host || !rhs_host || !flag_host)
     {
         fprintf(stderr, "Couldn't allocate memory for matrices.\n");

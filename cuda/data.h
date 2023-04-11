@@ -25,6 +25,9 @@ extern double del_t_h; /* Duration of each timestep */
 extern double delx_h, dely_h;
 extern double residual_h;
 
+extern dim3 threadsPerBlock;
+extern dim3 numBlocks;
+
 extern int u_size_x_h, u_size_y_h;
 extern int v_size_x_h, v_size_y_h;
 extern int p_size_x_h, p_size_y_h;
@@ -43,10 +46,15 @@ extern double *f, *f_host;
 extern double *g, *g_host;
 extern char *flag, *flag_host;
 
+extern double* p0;
+extern double* p0_reductions;
+
 #define ind(i, j, m) ((i) * (m) + (j))
 
 double *alloc_2d_array(int m, int n);
 char *alloc_2d_char_array(int m, int n);
+
+double *allocate_2d_gpu_array(int m, int n);
 
 double *copy_2d_array_to_gpu(double *src, int m, int n);
 char *copy_2d_char_array_to_gpu(char *src, int m, int n);

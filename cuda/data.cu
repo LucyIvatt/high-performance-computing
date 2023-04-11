@@ -12,6 +12,11 @@ double t_end_h = 5.0;	  /* Simulation runtime */
 double delx_h, dely_h;
 double residual_h;
 
+dim3 threadsPerBlock(16, 16);
+dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
+				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
+
 int u_size_x_h, u_size_y_h;
 int v_size_x_h, v_size_y_h;
 int p_size_x_h, p_size_y_h;
@@ -33,6 +38,9 @@ double *rhs, *rhs_host;
 double *f, *f_host;
 double *g, *g_host;
 char *flag, *flag_host;
+
+double* p0;
+double* p0_reductions;
 
 double del_t_h = 0.003; /* Duration of each timestep */
 
@@ -64,6 +72,12 @@ double *copy_2d_array_to_gpu(double *src, int m, int n) {
 	double* gpu;
 	cudaMalloc(&gpu, m * n * sizeof(double));
 	cudaMemcpy(gpu, src, m * n * sizeof(double), cudaMemcpyHostToDevice);
+	return gpu;
+}
+
+double *allocate_2d_gpu_array(int m, int n) {
+	double* gpu;
+	cudaMalloc(&gpu, m * n * sizeof(double));
 	return gpu;
 }
 

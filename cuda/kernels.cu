@@ -297,35 +297,100 @@ __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double
     }
 }
 
+__global__ void p0_reduction_s(double *p, char *flag, double *global_reductions)
+{
+	extern __shared__ double block_reductions[];
+
+	int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
+	int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+
+	int g_tid = ind(i, j, gridDim.y * blockDim.y); // Global Thread ID
+	int array_ind = ind(i, j, jmax + 2);
+	int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
+
+	int t_per_b = blockDim.x * blockDim.y;			  // Threads per block (rounded to nearest even number)
+	int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+
+	// If the thread is valid -->
+	if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
+	{
+		// copied the value from the data array into the blocks shared memory
+		if (flag[ind(i, j, jmax + 2)] & C_F)
+		{
+			block_reductions[b_tid] = p[array_ind] * p[array_ind];
+		}
+	}
+	else
+	{
+		// otherwise sets the shared memory value to 0 (so that this will never be picked if compared)
+		block_reductions[b_tid] = 0;
+	}
+	__syncthreads();
+
+	// Uses sequental addressing for a reduction
+	for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+	{
+		if (b_tid < s)
+		{
+			block_reductions[b_tid] = block_reductions[b_tid] + block_reductions[b_tid + s];
+		}
+		__syncthreads();
+	}
+
+	// write result for this block to global mem
+	if (b_tid == 0)
+		global_reductions[bid] = block_reductions[0];
+}
+
+__global__ void p0_reduction_e(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y)
+{
+	extern __shared__ double final_reductions[];
+
+	int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
+
+	int t_per_b = blockDim.x * blockDim.y;
+
+	if (b_tid < num_blocks_x * num_blocks_y)
+	{
+		final_reductions[b_tid] = global_reductions[b_tid];
+	}
+	else
+	{
+		final_reductions[b_tid] = 0;
+	}
+	__syncthreads();
+
+	// Uses sequental addressing for a reduction
+	for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+	{
+		if (b_tid < s)
+		{
+			final_reductions[b_tid] = final_reductions[b_tid] + final_reductions[b_tid + s];
+		}
+		__syncthreads();
+	}
+
+	// write result for this block to global mem
+	if (b_tid == 0)
+		*p0 = final_reductions[0];
+}
+
 /**
  * @brief Red/Black SOR to solve the poisson equation.
  *
  * @return Calculated residual of the computation
  *
  */
-__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag)
+__global__ void poisson(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag, double* p0)
 {
     double rdx2 = 1.0 / (delx * delx);
     double rdy2 = 1.0 / (dely * dely);
     double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
 
-    double p0 = 0.0;
-    /* Calculate sum of squares */
-    for (int i = 1; i < imax + 1; i++)
+    *p0 = sqrt(*p0 / fluid_cells);
+    if (*p0 < 0.0001)
     {
-        for (int j = 1; j < jmax + 1; j++)
-        {
-            if (flag[ind(i, j, flag_size_y)] & C_F)
-            {
-                p0 += p[ind(i, j, p_size_y)] * p[ind(i, j, p_size_y)];
-            }
-        }
-    }
-
-    p0 = sqrt(p0 / fluid_cells);
-    if (p0 < 0.0001)
-    {
-        p0 = 1.0;
+        *p0 = 1.0;
     }
 
     /* Red/Black SOR-iteration */
@@ -390,7 +455,7 @@ __global__ void poisson(double* u, double* v, double* p, double* rhs, double* f,
                 }
             }
         }
-        residual = sqrt(residual / fluid_cells) / p0;
+        residual = sqrt(residual / fluid_cells) / *p0;
 
         /* convergence? */
         if (residual < eps)
