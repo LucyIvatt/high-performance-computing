@@ -2,6 +2,17 @@ import sys
 import re
 from math import sqrt
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 TOLERANCE = 0.02
 
 def is_num_str(string):
@@ -55,6 +66,13 @@ def compare_files(f1, f2):
     print(f"\nNote: Close values are determined using a tolerance value of {TOLERANCE}. Percentages are calculated to 4 decimal places.\n")
 
     print(f"Cosine Similarity: {cosine_similarity * 100}")
+
+    if stats_dict["EXACT"] == stats_dict["TOTAL"]:
+        print(f"{bcolors.OKGREEN}PASS: Both files are an exact match - successful parallel implementation. {bcolors.ENDC}")
+    elif stats_dict["WRONG"] == 0:
+        print(f"{bcolors.WARNING}WARNING: The file are similar but not an exact match - floating point error may be the cause.{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}ERROR: Files are not identical - check recent changes and retry. {bcolors.ENDC}")
 
     print("-----------------------------------------------")
 
