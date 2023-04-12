@@ -105,7 +105,10 @@ __global__ void problem_set_up(double *u, double *v, double *p, char *flag)
  */
 __global__ void apply_boundary_conditions(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
-    for (int j = 0; j < jmax + 2; j++)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (j < jmax + 2)
     {
         /* Fluid freely flows in from the west */
         u[ind(0, j, u_size_y)] = u[ind(1, j, u_size_y)];
@@ -116,7 +119,9 @@ __global__ void apply_boundary_conditions(double *u, double *v, double *p, doubl
         v[ind(imax + 1, j, v_size_y)] = v[ind(imax, j, v_size_y)];
     }
 
-    for (int i = 0; i < imax + 2; i++)
+    __syncthreads();
+
+    if (i < imax + 2)
     {
         /* The vertical velocity approaches 0 at the north and south
          * boundaries, but fluid flows freely in the horizontal direction */
@@ -127,10 +132,16 @@ __global__ void apply_boundary_conditions(double *u, double *v, double *p, doubl
         u[ind(i, 0, u_size_y)] = u[ind(i, 1, u_size_y)];
     }
 
+    
+}
+
+__global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+{
     /* Apply no-slip boundary conditions to cells that are adjacent to
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
+    
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -681,7 +692,7 @@ __global__ void umax_vmax_reduction_s(double *array, double *global_reductions, 
     int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
 
     // If the thread is valid -->
-    if ((version == 0 && i < imax + 2 && j > 0 && j < jmax + 2) || (version == 1 && i > 1 && i < imax+2 && j < jmax + 2))
+    if ((version == 0 && i < imax + 2 && j > 0 && j < jmax + 2) || (version == 1 && i > 1 && i < imax + 2 && j < jmax + 2))
     {
         block_reductions[b_tid] = fabs((double)array[array_ind]);
     }

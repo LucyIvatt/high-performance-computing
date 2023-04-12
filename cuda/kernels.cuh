@@ -24,6 +24,8 @@ extern __device__ double del_t; /* Duration of each timestep */
 
 __global__ void problem_set_up(double* u, double* v, double* p, char* flag);
 __global__ void apply_boundary_conditions(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag);
+
 __global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
