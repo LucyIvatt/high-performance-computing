@@ -205,7 +205,6 @@ __global__ void apply_boundary_conditions(double *u, double *v, double *p, doubl
  */
 __global__ void compute_tentative_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
-
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -282,10 +281,12 @@ __global__ void compute_tentative_velocity(double *u, double *v, double *p, doub
  */
 __global__ void compute_rhs(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
-    for (int i = 1; i < imax + 1; i++)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i > 0 && i < imax+1 && j >0 && j < jmax+1)
     {
-        for (int j = 1; j < jmax + 1; j++)
-        {
+
             if (flag[ind(i, j, flag_size_y)] & C_F)
             {
                 /* only for fluid and non-surface cells */
@@ -293,7 +294,6 @@ __global__ void compute_rhs(double *u, double *v, double *p, double *rhs, double
                                               (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
                                              del_t;
             }
-        }
     }
 }
 

@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
         rhs_start = get_time();
-        compute_rhs<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        compute_rhs<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
         cudaDeviceSynchronize();
         rhs_time += get_time() - rhs_start;
 
