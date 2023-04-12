@@ -33,6 +33,10 @@ double get_time()
  */
 int main(int argc, char *argv[])
 {
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
+				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
     /* Timer Initialisations */
     double total_time = get_time();
     double setup_time = get_time();

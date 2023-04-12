@@ -102,6 +102,10 @@ void allocate_arrays()
     cudaMemcpyToSymbol(flag_size_x, &flag_size_x_h, sizeof(int));
     cudaMemcpyToSymbol(flag_size_y, &flag_size_y_h, sizeof(int));
 
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
+				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
     p0 = allocate_2d_gpu_array(1, 1);
     p0_reductions = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
 

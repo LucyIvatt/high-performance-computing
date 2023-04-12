@@ -539,6 +539,10 @@ __global__ void residual_reduction_e(double *global_reductions, double *residual
  */
 void poisson()
 {
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
+				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
+                   
     int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
 
     /* PARALLEL REDUCTION OF P0 - WORKS*/

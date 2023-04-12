@@ -16,11 +16,6 @@ double eps = 0.001;
 double delx_h, dely_h;
 double residual_h;
 
-dim3 threadsPerBlock(16, 16);
-dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
-				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
-
-
 int u_size_x_h, u_size_y_h;
 int v_size_x_h, v_size_y_h;
 int p_size_x_h, p_size_y_h;

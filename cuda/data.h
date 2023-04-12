@@ -27,10 +27,6 @@ extern double del_t_h; /* Duration of each timestep */
 extern double delx_h, dely_h;
 extern double residual_h;
 
-
-extern dim3 threadsPerBlock;
-extern dim3 numBlocks;
-
 extern int u_size_x_h, u_size_y_h;
 extern int v_size_x_h, v_size_y_h;
 extern int p_size_x_h, p_size_y_h;
