@@ -112,6 +112,12 @@ void allocate_arrays()
     residual = allocate_2d_gpu_array(1, 1);
     residual_reductions = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
 
+    umax_g = allocate_2d_gpu_array(1, 1);
+    vmax_g = allocate_2d_gpu_array(1, 1);
+
+    umax_red = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
+    vmax_red = allocate_2d_gpu_array(numBlocks.x, numBlocks.y);
+
 
     if (!u_host || !v_host || !f_host || !g_host || !p_host || !rhs_host || !flag_host)
     {

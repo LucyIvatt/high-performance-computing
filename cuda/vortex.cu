@@ -22,6 +22,10 @@ double get_time()
     return (double)(timer.tv_sec + timer.tv_nsec / 1000000000.0);
 }
 
+void timestamp_reductions(){
+    
+}
+
 
 
 /**
@@ -77,10 +81,18 @@ int main(int argc, char *argv[])
     double t;
     for (t = 0.0; t < t_end_h; t += del_t_h, iters++)
     {
-        if (!fixed_dt)
-            set_timestep_interval<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        if (!fixed_dt) {
+            umax_vmax_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(u, umax_red, 0);
+            umax_vmax_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(v, vmax_red, 1);
+            cudaDeviceSynchronize();
+            int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
+            umax_vmax_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(umax_red, umax_g, numBlocks.x, numBlocks.y);
+            umax_vmax_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(vmax_red, vmax_g, numBlocks.x, numBlocks.y);
+            cudaDeviceSynchronize();
+            set_timestep_interval<<<1, 1>>>(umax_g, vmax_g);
             cudaDeviceSynchronize();
             cudaMemcpyFromSymbol(&del_t_h, del_t, sizeof(double));
+        }
 
         tentative_velocity_start = get_time();
         compute_tentative_velocity<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);

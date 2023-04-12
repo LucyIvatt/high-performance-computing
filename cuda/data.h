@@ -48,6 +48,9 @@ extern char *flag, *flag_host;
 extern double* p0;
 extern double* p0_reductions;
 
+extern double *umax_g, *vmax_g;
+extern double *umax_red, *vmax_red;
+
 extern double* residual;
 extern double* residual_reductions;
 

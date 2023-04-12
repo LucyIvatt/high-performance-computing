@@ -27,10 +27,13 @@ __global__ void apply_boundary_conditions(double* u, double* v, double* p, doubl
 __global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
-__global__ void set_timestep_interval(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void set_timestep_interval(double* umax, double* vmax);
 
 __global__ void p0_reduction_s(double *p, char *flag, double *global_reductions);
 __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y);
+
+__global__ void umax_vmax_reduction_s(double *array, double *global_reductions, int version);
+__global__ void umax_vmax_reduction_e(double *global_reductions, double *output_val, int num_blocks_x, int num_blocks_y);
 
 void poisson();
 

@@ -284,16 +284,16 @@ __global__ void compute_rhs(double *u, double *v, double *p, double *rhs, double
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (i > 0 && i < imax+1 && j >0 && j < jmax+1)
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
 
-            if (flag[ind(i, j, flag_size_y)] & C_F)
-            {
-                /* only for fluid and non-surface cells */
-                rhs[ind(i, j, rhs_size_y)] = ((f[ind(i, j, f_size_y)] - f[ind(i - 1, j, f_size_y)]) / delx +
-                                              (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
-                                             del_t;
-            }
+        if (flag[ind(i, j, flag_size_y)] & C_F)
+        {
+            /* only for fluid and non-surface cells */
+            rhs[ind(i, j, rhs_size_y)] = ((f[ind(i, j, f_size_y)] - f[ind(i - 1, j, f_size_y)]) / delx +
+                                          (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
+                                         del_t;
+        }
     }
 }
 
@@ -539,7 +539,7 @@ void poisson()
 {
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
-				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
+                   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
 
     int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
 
@@ -610,42 +610,134 @@ __global__ void update_velocity(double *u, double *v, double *p, double *rhs, do
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-__global__ void set_timestep_interval(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void set_timestep_interval(double *umax_g, double *vmax_g)
 {
-    /* del_t satisfying CFL conditions */
-    if (tau >= 1.0e-10)
-    { /* else no time stepsize control */
-        double umax = 1.0e-10;
-        double vmax = 1.0e-10;
+    // /* del_t satisfying CFL conditions */
+    // if (tau >= 1.0e-10)
+    // { /* else no time stepsize control */
+    //     double umax = 1.0e-10;
+    //     double vmax = 1.0e-10;
 
-        for (int i = 0; i < imax + 2; i++)
-        {
-            for (int j = 1; j < jmax + 2; j++)
-            {
-                umax = fmax(fabs(u[ind(i, j, u_size_y)]), umax);
-            }
-        }
+    //     for (int i = 0; i < imax + 2; i++)
+    //     {
+    //         for (int j = 1; j < jmax + 2; j++)
+    //         {
+    //             umax = fmax(fabs(u[ind(i, j, u_size_y)]), umax);
+    //         }
+    //     }
 
-        for (int i = 1; i < imax + 2; i++)
-        {
-            for (int j = 0; j < jmax + 2; j++)
-            {
-                vmax = fmax(fabs(v[ind(i, j, v_size_y)]), vmax);
-            }
-        }
+    //     for (int i = 1; i < imax + 2; i++)
+    //     {
+    //         for (int j = 0; j < jmax + 2; j++)
+    //         {
+    //             vmax = fmax(fabs(v[ind(i, j, v_size_y)]), vmax);
+    //         }
+    //     }
 
-        double deltu = delx / umax;
-        double deltv = dely / vmax;
-        double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
+    //     double deltu = delx / umax;
+    //     double deltv = dely / vmax;
+    //     double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
 
-        if (deltu < deltv)
+    //     if (deltu < deltv)
+    //     {
+    //         del_t = fmin(deltu, deltRe);
+    //     }
+    //     else
+    //     {
+    //         del_t = fmin(deltv, deltRe);
+    //     }
+    //     del_t = tau * del_t; /* multiply by safety factor */
+    // }
+
+    *umax_g = fmax(*umax_g, 1.0e-10);
+    *vmax_g = fmax(*vmax_g, 1.0e-10);
+
+    double deltu = delx / *umax_g;
+    double deltv = dely / *vmax_g;
+    double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
+
+    if (deltu < deltv)
+    {
+        del_t = fmin(deltu, deltRe);
+    }
+    else
+    {
+        del_t = fmin(deltv, deltRe);
+    }
+    del_t = tau * del_t; /* multiply by safety factor */
+}
+
+__global__ void umax_vmax_reduction_s(double *array, double *global_reductions, int version)
+{
+    extern __shared__ double block_reductions[];
+
+    int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
+    int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+
+    int array_ind = ind(i, j, jmax + 2);
+    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
+
+    int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
+    int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+
+    // If the thread is valid -->
+    if ((version == 0 && i < imax + 2 && j > 0 && j < jmax + 2) || (version == 1 && i > 1 && i < imax+2 && j < jmax + 2))
+    {
+        block_reductions[b_tid] = fabs((double)array[array_ind]);
+    }
+    else
+    {
+        // otherwise sets the shared memory value to 0 (so that this will never be picked if compared)
+        block_reductions[b_tid] = 0;
+    }
+    __syncthreads();
+
+    // Uses sequental addressing for a reduction
+    for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+    {
+        if (b_tid < s)
         {
-            del_t = fmin(deltu, deltRe);
+            block_reductions[b_tid] = fmax((double)block_reductions[b_tid], block_reductions[b_tid + s]);
         }
-        else
+        __syncthreads();
+    }
+
+    // write result for this block to global mem
+    if (b_tid == 0)
+        global_reductions[bid] = block_reductions[0];
+}
+
+__global__ void umax_vmax_reduction_e(double *global_reductions, double *output_val, int num_blocks_x, int num_blocks_y)
+{
+    extern __shared__ double final_reductions[];
+
+    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
+
+    int t_per_b = blockDim.x * blockDim.y;
+
+    if (b_tid < num_blocks_x * num_blocks_y)
+    {
+        final_reductions[b_tid] = global_reductions[b_tid];
+    }
+    else
+    {
+        final_reductions[b_tid] = 0;
+    }
+    __syncthreads();
+
+    // Uses sequental addressing for a reduction
+    for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
+    {
+        if (b_tid < s)
         {
-            del_t = fmin(deltv, deltRe);
+            final_reductions[b_tid] = fmax((double)final_reductions[b_tid], final_reductions[b_tid + s]);
         }
-        del_t = tau * del_t; /* multiply by safety factor */
+        __syncthreads();
+    }
+
+    // write result for this block to global mem
+    if (b_tid == 0)
+    {
+        *output_val = final_reductions[0];
     }
 }

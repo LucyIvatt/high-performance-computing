@@ -41,6 +41,9 @@ char *flag, *flag_host;
 double* p0;
 double* p0_reductions;
 
+double *umax_g, *vmax_g;
+double *umax_red, *vmax_red;
+
 double* residual;
 double* residual_reductions;
 
