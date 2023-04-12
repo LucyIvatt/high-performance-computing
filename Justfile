@@ -63,16 +63,13 @@ scalasca target *args="": (clean target) (build target "CC='scorep gcc'")
     (cd "{{ target }}" && scalasca -analyze {{ VORTEX_CMD }} {{ args }} -n)
     scalasca -examine "{{ target }}/scorep_vortex_OxO_sum"
 
-# Valiate a target's output against ORIGINAL_TARGET's
-validate target *args="": (build target) (build ORIGINAL_TARGET)
-    "{{ target }}/vortex" {{ args }} \
-        -o "{{ target }}"
-    "{{ ORIGINAL_TARGET }}/vortex" {{ args }} \
-        -o "{{ ORIGINAL_TARGET }}"
-    ( \
-        cd ./parse_vtk && \
-        cargo run --release -- "../{{ target }}.vtk" "../{{ ORIGINAL_TARGET }}.vtk" \
-    )
+# Run validator script on the output of two different targets
+validate ltarget rtarget *args="": (build ltarget) (build rtarget)
+    "{{ ltarget }}/vortex" {{ args }} \
+        -o "{{ ltarget }}"
+    "{{ rtarget }}/vortex" {{ args }} \
+        -o "{{ rtarget }}"
+    python3 ./validation/validator.py "{{ ltarget }}.vtk" "{{ rtarget }}.vtk"
 
 # Clean build and run artefacts locally
 clean *targets=TARGETS:
