@@ -205,70 +205,71 @@ __global__ void apply_boundary_conditions(double *u, double *v, double *p, doubl
  */
 __global__ void compute_tentative_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
-    for (int i = 1; i < imax; i++)
-    {
-        for (int j = 1; j < jmax + 1; j++)
-        {
-            /* only if both adjacent cells are fluid cells */
-            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
-            {
-                double du2dx = ((u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) +
-                                y * fabs(u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i + 1, j, u_size_y)]) -
-                                (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) -
-                                y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] - u[ind(i, j, u_size_y)])) /
-                               (4.0 * delx);
-                double duvdy = ((v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) +
-                                y * fabs(v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i, j + 1, u_size_y)]) -
-                                (v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] + u[ind(i, j, u_size_y)]) -
-                                y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] - u[ind(i, j, u_size_y)])) /
-                               (4.0 * dely);
-                double laplu = (u[ind(i + 1, j, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i - 1, j, u_size_y)]) / delx / delx +
-                               (u[ind(i, j + 1, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i, j - 1, u_size_y)]) / dely / dely;
 
-                f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)] + del_t * (laplu / Re - du2dx - duvdy);
-            }
-            else
-            {
-                f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)];
-            }
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i > 0 && i < imax && j > 0 && j < jmax + 1)
+    {
+
+        /* only if both adjacent cells are fluid cells */
+        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
+        {
+            double du2dx = ((u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) +
+                            y * fabs(u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i + 1, j, u_size_y)]) -
+                            (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) -
+                            y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] - u[ind(i, j, u_size_y)])) /
+                           (4.0 * delx);
+            double duvdy = ((v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) +
+                            y * fabs(v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i, j + 1, u_size_y)]) -
+                            (v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] + u[ind(i, j, u_size_y)]) -
+                            y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] - u[ind(i, j, u_size_y)])) /
+                           (4.0 * dely);
+            double laplu = (u[ind(i + 1, j, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i - 1, j, u_size_y)]) / delx / delx +
+                           (u[ind(i, j + 1, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i, j - 1, u_size_y)]) / dely / dely;
+
+            f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)] + del_t * (laplu / Re - du2dx - duvdy);
         }
-    }
-    for (int i = 1; i < imax + 1; i++)
-    {
-        for (int j = 1; j < jmax; j++)
+        else
         {
-            /* only if both adjacent cells are fluid cells */
-            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
-            {
-                double duvdx = ((u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) +
-                                y * fabs(u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i + 1, j, v_size_y)]) -
-                                (u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] + v[ind(i, j, v_size_y)]) -
-                                y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] - v[ind(i, j, v_size_y)])) /
-                               (4.0 * delx);
-                double dv2dy = ((v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) +
-                                y * fabs(v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i, j + 1, v_size_y)]) -
-                                (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) -
-                                y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] - v[ind(i, j, v_size_y)])) /
-                               (4.0 * dely);
-                double laplv = (v[ind(i + 1, j, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i - 1, j, v_size_y)]) / delx / delx +
-                               (v[ind(i, j + 1, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i, j - 1, v_size_y)]) / dely / dely;
-
-                g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)] + del_t * (laplv / Re - duvdx - dv2dy);
-            }
-            else
-            {
-                g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)];
-            }
+            f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)];
         }
     }
 
-    /* f & g at external boundaries */
-    for (int j = 1; j < jmax + 1; j++)
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax)
     {
+        /* only if both adjacent cells are fluid cells */
+        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
+        {
+            double duvdx = ((u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) +
+                            y * fabs(u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i + 1, j, v_size_y)]) -
+                            (u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] + v[ind(i, j, v_size_y)]) -
+                            y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] - v[ind(i, j, v_size_y)])) /
+                           (4.0 * delx);
+            double dv2dy = ((v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) +
+                            y * fabs(v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i, j + 1, v_size_y)]) -
+                            (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) -
+                            y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] - v[ind(i, j, v_size_y)])) /
+                           (4.0 * dely);
+            double laplv = (v[ind(i + 1, j, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i - 1, j, v_size_y)]) / delx / delx +
+                           (v[ind(i, j + 1, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i, j - 1, v_size_y)]) / dely / dely;
+
+            g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)] + del_t * (laplv / Re - duvdx - dv2dy);
+        }
+        else
+        {
+            g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)];
+        }
+    }
+
+    if (j > 0 && j < jmax + 1)
+    {
+        /* f & g at external boundaries */
         f[ind(0, j, f_size_y)] = u[ind(0, j, u_size_y)];
         f[ind(imax, j, f_size_y)] = u[ind(imax, j, u_size_y)];
     }
-    for (int i = 1; i < imax + 1; i++)
+
+    if (i > 0 && i < imax + 1)
     {
         g[ind(i, 0, g_size_y)] = v[ind(i, 0, v_size_y)];
         g[ind(i, jmax, g_size_y)] = v[ind(i, jmax, v_size_y)];
@@ -379,7 +380,6 @@ __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_bl
         {
             *p0 = 1.0;
         }
-        printf("p0 %f = \n", *p0);
     }
 }
 
@@ -413,33 +413,33 @@ __global__ void star_computation(double *u, double *v, double *p, double *rhs, d
     }
 }
 
-__global__ void residual_s(double* residual, double* p0, char* flag, double* p, double* rhs){
+__global__ void residual_s(double *residual, double *p0, char *flag, double *p, double *rhs)
+{
     /* computation of residual */
-        for (int i = 1; i < imax + 1; i++)
+    for (int i = 1; i < imax + 1; i++)
+    {
+        for (int j = 1; j < jmax + 1; j++)
         {
-            for (int j = 1; j < jmax + 1; j++)
+            if (flag[ind(i, j, flag_size_y)] & C_F)
             {
-                if (flag[ind(i, j, flag_size_y)] & C_F)
-                {
-                    double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+                double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
 
-                    /* only fluid cells */
-                    double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                                  eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
-                                     rdx2 +
-                                 (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                                  eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
-                                     rdy2 -
-                                 rhs[ind(i, j, rhs_size_y)];
-                    *residual += add * add;
-                }
+                /* only fluid cells */
+                double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                              eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
+                                 rdx2 +
+                             (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
+                              eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
+                                 rdy2 -
+                             rhs[ind(i, j, rhs_size_y)];
+                *residual += add * add;
             }
         }
-        *residual = sqrt(*residual / fluid_cells) / *p0;
-        printf("residual=%f\n", *residual);
+    }
+    *residual = sqrt(*residual / fluid_cells) / *p0;
 }
 
 __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double *global_reductions)
@@ -456,7 +456,7 @@ __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double 
     int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
 
     // If the thread is valid -->
-    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && flag[ind(i, j, flag_size_y)] & C_F)
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && (flag[ind(i, j, flag_size_y)] & C_F))
     {
         double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
         double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
@@ -527,9 +527,7 @@ __global__ void residual_reduction_e(double *global_reductions, double *residual
     if (b_tid == 0)
     {
         *residual = final_reductions[0];
-        printf("residual b4 math %f = \n", *residual);
         *residual = sqrt((double)*residual / fluid_cells) / *p0;
-        printf("residual %f = \n", *residual);
     }
 }
 
@@ -543,9 +541,9 @@ void poisson()
 {
     int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
 
+    /* PARALLEL REDUCTION OF P0 - WORKS*/
     p0_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, flag, p0_reductions);
     cudaDeviceSynchronize();
-
     p0_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(p0_reductions, p0, numBlocks.x, numBlocks.y);
     cudaDeviceSynchronize();
 
@@ -557,14 +555,18 @@ void poisson()
         cudaDeviceSynchronize();
         star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 1);
         cudaDeviceSynchronize();
-        residual_s<<<1, 1>>>(residual, p0, flag, p, rhs);
+
+        /* SEQUENTIAL CALCULATION OF RESIDUAL - WORKS*/
+        // residual_s<<<1, 1>>>(residual, p0, flag, p, rhs);
+        // cudaDeviceSynchronize();
+
+        /* PARALLEL REDUCTION OF RESIDUAL - DOESNT FUCKING WORK */
+        residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
+        cudaDeviceSynchronize();
+        residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
         cudaDeviceSynchronize();
 
-        // residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
-        // cudaDeviceSynchronize();
-        // residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
-        // cudaDeviceSynchronize();
-
+        // Copies residual to host code so it can be checked against eps (and printed in main vortex loop)
         cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
 
@@ -580,27 +582,24 @@ void poisson()
  */
 __global__ void update_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
-    for (int i = 1; i < imax - 2; i++)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i > 0 && i < imax - 2 && j > 0 && j < jmax - 1)
     {
-        for (int j = 1; j < jmax - 1; j++)
+        /* only if both adjacent cells are fluid cells */
+        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
         {
-            /* only if both adjacent cells are fluid cells */
-            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
-            {
-                u[ind(i, j, u_size_y)] = f[ind(i, j, f_size_y)] - (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / delx;
-            }
+            u[ind(i, j, u_size_y)] = f[ind(i, j, f_size_y)] - (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / delx;
         }
     }
 
-    for (int i = 1; i < imax - 1; i++)
+    if (i > 0 && i < imax - 1 && j > 0 && j < jmax - 2)
     {
-        for (int j = 1; j < jmax - 2; j++)
+        /* only if both adjacent cells are fluid cells */
+        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
         {
-            /* only if both adjacent cells are fluid cells */
-            if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
-            {
-                v[ind(i, j, v_size_y)] = g[ind(i, j, g_size_y)] - (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / dely;
-            }
+            v[ind(i, j, v_size_y)] = g[ind(i, j, g_size_y)] - (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / dely;
         }
     }
 }

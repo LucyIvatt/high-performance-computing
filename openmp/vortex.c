@@ -227,6 +227,7 @@ double poisson()
             }
         }
         res = sqrt(res / fluid_cells) / p0;
+        printf("residual %f = \n", res);
 
         /* convergence? */
         if (res < eps)

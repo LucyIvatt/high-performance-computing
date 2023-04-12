@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
             cudaMemcpyFromSymbol(&del_t_h, del_t, sizeof(double));
 
         tentative_velocity_start = get_time();
-        compute_tentative_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        compute_tentative_velocity<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
         cudaDeviceSynchronize();
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         poisson_time += get_time() - poisson_start;
 
         update_velocity_start = get_time();
-        update_velocity<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        update_velocity<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
         cudaDeviceSynchronize();
         update_velocity_time += get_time() - update_velocity_start;
 
