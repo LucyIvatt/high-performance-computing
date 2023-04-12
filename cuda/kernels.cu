@@ -304,7 +304,6 @@ __global__ void p0_reduction_s(double *p, char *flag, double *global_reductions)
     int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
     int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
 
-    int g_tid = ind(i, j, gridDim.y * blockDim.y); // Global Thread ID
     int array_ind = ind(i, j, jmax + 2);
     int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
 
@@ -449,7 +448,6 @@ __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double 
     int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
     int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
 
-    int g_tid = ind(i, j, gridDim.y * blockDim.y);         // Global Thread ID
     int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
 
     int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
@@ -542,7 +540,7 @@ void poisson()
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
 				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
-                   
+
     int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
 
     /* PARALLEL REDUCTION OF P0 - WORKS*/
