@@ -33,7 +33,11 @@ __global__ void setup_flag_kernel(char *flag);
 __global__ void boundary_conditions_kernel_1(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag);
 
-__global__ void compute_tentative_velocity_kernel(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void tentative_velocity_update_f_kernel(double *u, double *v, double *f, char *flag);
+__global__ void tentative_velocity_update_g_kernel(double *u, double *v, double *g, char *flag);
+__global__ void tentative_velocity_g_boundaries_kernel(double *g, double *v);
+__global__ void tentative_velocity_f_boundaries_kernel(double *f, double *u);
+
 __global__ void compute_rhs_kernel(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void update_velocity_kernel(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void set_timestep_interval_kernel(double* umax, double* vmax);

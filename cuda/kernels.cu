@@ -97,15 +97,6 @@ __global__ void setup_flag_kernel(char *flag)
 }
 
 /**
- * @brief Initialise the velocity arrays and then initialize the flag array,
- * marking any obstacle cells and the edge cells as boundaries. The cells
- * adjacent to boundary cells have their relevant flags set too.
- */
-__global__ void problem_set_up_kernel(double *u, double *v, double *p, char *flag)
-{
-}
-
-/**
  * @brief Given the boundary conditions defined by the flag matrix, update
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
@@ -212,11 +203,7 @@ __global__ void apply_boundary_conditions_2(double *u, double *v, double *p, dou
     }
 }
 
-/**
- * @brief Computation of tentative velocity field (f, g)
- *
- */
-__global__ void compute_tentative_velocity_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void tentative_velocity_update_f_kernel(double *u, double *v, double *f, char *flag)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -247,6 +234,12 @@ __global__ void compute_tentative_velocity_kernel(double *u, double *v, double *
             f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)];
         }
     }
+}
+
+__global__ void tentative_velocity_update_g_kernel(double *u, double *v, double *g, char *flag)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax)
     {
@@ -273,6 +266,12 @@ __global__ void compute_tentative_velocity_kernel(double *u, double *v, double *
             g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)];
         }
     }
+}
+
+__global__ void tentative_velocity_f_boundaries_kernel(double *f, double *u)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (j > 0 && j < jmax + 1)
     {
@@ -280,6 +279,12 @@ __global__ void compute_tentative_velocity_kernel(double *u, double *v, double *
         f[ind(0, j, f_size_y)] = u[ind(0, j, u_size_y)];
         f[ind(imax, j, f_size_y)] = u[ind(imax, j, u_size_y)];
     }
+}
+
+
+__global__ void tentative_velocity_g_boundaries_kernel(double *g, double *v){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i > 0 && i < imax + 1)
     {
@@ -287,6 +292,7 @@ __global__ void compute_tentative_velocity_kernel(double *u, double *v, double *
         g[ind(i, jmax, g_size_y)] = v[ind(i, jmax, v_size_y)];
     }
 }
+
 
 /**
  * @brief Calculate the right hand side of the pressure equation

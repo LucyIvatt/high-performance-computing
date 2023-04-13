@@ -46,7 +46,10 @@ void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
 }
 
 void compute_tentative_velocity(dim3 threads, dim3 blocks){
-    compute_tentative_velocity_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    tentative_velocity_update_f_kernel<<<blocks, threads>>>(u, v, f, flag);
+    tentative_velocity_update_g_kernel<<<blocks, threads>>>(u, v, g, flag);
+    tentative_velocity_g_boundaries_kernel<<<blocks, threads>>>(g, v);
+    tentative_velocity_f_boundaries_kernel<<<blocks, threads>>>(f, u);
     cudaDeviceSynchronize();
 }
 
