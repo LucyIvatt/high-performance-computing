@@ -93,7 +93,8 @@ void poisson(dim3 threads, dim3 blocks, int reduction_threads)
 }
 
 void update_velocity(dim3 threads, dim3 blocks) {
-    update_velocity_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    update_velocity_u_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    update_velocity_v_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
     cudaDeviceSynchronize();
 }
 

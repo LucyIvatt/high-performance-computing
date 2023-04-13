@@ -270,7 +270,6 @@ __global__ void tentative_velocity_update_g_kernel(double *u, double *v, double 
 
 __global__ void tentative_velocity_f_boundaries_kernel(double *f, double *u)
 {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (j > 0 && j < jmax + 1)
@@ -284,7 +283,6 @@ __global__ void tentative_velocity_f_boundaries_kernel(double *f, double *u)
 
 __global__ void tentative_velocity_g_boundaries_kernel(double *g, double *v){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i > 0 && i < imax + 1)
     {
@@ -305,7 +303,6 @@ __global__ void compute_rhs_kernel(double *u, double *v, double *p, double *rhs,
 
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
-
         if (flag[ind(i, j, flag_size_y)] & C_F)
         {
             /* only for fluid and non-surface cells */
@@ -519,12 +516,7 @@ __global__ void residual_reduction_global_kernel(double *global_reductions, doub
     }
 }
 
-/**
- * @brief Update the velocity values based on the tentative
- * velocity values and the new pressure matrix
- */
-__global__ void update_velocity_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
-{
+__global__ void update_velocity_u_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -536,6 +528,16 @@ __global__ void update_velocity_kernel(double *u, double *v, double *p, double *
             u[ind(i, j, u_size_y)] = f[ind(i, j, f_size_y)] - (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / delx;
         }
     }
+}
+
+/**
+ * @brief Update the velocity values based on the tentative
+ * velocity values and the new pressure matrix
+ */
+__global__ void update_velocity_v_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i > 0 && i < imax - 1 && j > 0 && j < jmax - 2)
     {
