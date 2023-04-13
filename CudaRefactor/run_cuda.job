@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --time=00:10:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=4gb
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+set -euxo pipefail
+
+module load system/CUDA/11.1.1-GCC-10.2.0
+(cd cuda && make)
+time sh -c '(cd cuda && ./vortex )'
