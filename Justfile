@@ -160,6 +160,7 @@ viking_run target folder=`mktemp -du /tmp/hipcassessXXX` *args="": (clean target
         'cd ~/scratch/$(basename {{ folder }}) && \
         sbatch ./run_{{ target }}.job'
     @printf "\n==================================================\nViking job run in directory $(basename {{ folder }})\n\n"
+    rm "{{ folder }}" -r
 
 # Helper for viking_run for openmp
 viking_run_openmp folder cpus="20" *args="":
