@@ -47,21 +47,24 @@ void boundary_conditions(dim3 threads, dim3 blocks) {
 }
 
 void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
+    // Creates streams to run kernels in parallel
     cudaStream_t s1, s2;
     cudaStreamCreate(&s1);
     cudaStreamCreate(&s2);
 
-    // Completes the reductions to find the absolute maximum from the u and v arrays
     abs_max_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double), s1>>>(u, umax_red, 0);
     abs_max_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double), s2>>>(v, vmax_red, 1);
+
     cudaStreamSynchronize(s1);
     cudaStreamSynchronize(s2);
+
     abs_max_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double), s1>>>(umax_red, umax_g, blocks.x, blocks.y);
     abs_max_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double), s2>>>(vmax_red, vmax_g, blocks.x, blocks.y);
-    cudaDeviceSynchronize();
 
     cudaStreamDestroy(s1);
     cudaStreamDestroy(s2);
+    
+    cudaDeviceSynchronize();
 
     // Completes the final sequential part of 
     set_timestep_interval_kernel<<<1, 1>>>(umax_g, vmax_g);
