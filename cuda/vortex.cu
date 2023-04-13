@@ -94,9 +94,16 @@ void poisson(dim3 threads, dim3 blocks, int reduction_threads)
 }
 
 void update_velocity(dim3 threads, dim3 blocks) {
-    update_velocity_u_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
-    update_velocity_v_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    cudaStream_t stream1, stream2;
+    cudaStreamCreate(&stream1);
+    cudaStreamCreate(&stream2);
+
+    update_velocity_u_kernel<<<blocks, threads, 0, stream1>>>(u, v, p, rhs, f, g, flag);
+    update_velocity_v_kernel<<<blocks, threads, 0, stream2>>>(u, v, p, rhs, f, g, flag);
     cudaDeviceSynchronize();
+
+    cudaStreamDestroy(stream1);
+    cudaStreamDestroy(stream2);
 }
 
 void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
