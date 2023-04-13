@@ -15,33 +15,39 @@ void set_defaults()
 }
 
 /**
- * @brief Set up some values after arguments have been parsed.
+ * @brief Set up some values after arguments have been parsed, copies to GPU constants as needed.
  *
  */
 void setup()
 {
+    // Values taken from arg inputs
+    cudaMemcpyToSymbol(imax, &imax_h, sizeof(int));
+    cudaMemcpyToSymbol(jmax, &jmax_h, sizeof(int));
+    cudaMemcpyToSymbol(t_end, &t_end_h, sizeof(double));
+    cudaMemcpyToSymbol(del_t, &del_t_h, sizeof(double));
+
+    // Values calculated from arg inputs
     delx_h = xlength / imax_h;
     dely_h = ylength / jmax_h;
 
+    cudaMemcpyToSymbol(delx, &delx_h, sizeof(double));
+    cudaMemcpyToSymbol(dely, &dely_h, sizeof(double));
+
     double rdx2_h = 1.0 / (delx_h * delx_h);
     double rdy2_h = 1.0 / (dely_h * dely_h);
-
     double omega_h = 1.7;
-
     double beta_2_h = -omega_h / (2.0 * (rdx2_h + rdy2_h));
 
     cudaMemcpyToSymbol(rdx2, &rdx2_h, sizeof(double));
     cudaMemcpyToSymbol(rdy2, &rdy2_h, sizeof(double));
     cudaMemcpyToSymbol(beta_2, &beta_2_h, sizeof(double));
 
-    cudaMemcpyToSymbol(delx, &delx_h, sizeof(double));
-    cudaMemcpyToSymbol(dely, &dely_h, sizeof(double));
+    double mx_h = 20.0 / 41.0 * jmax_h * dely_h;
+    double rad1_h = 5.0 / 41.0 * jmax_h * dely_h;
 
-    cudaMemcpyToSymbol(imax, &imax_h, sizeof(int));
-    cudaMemcpyToSymbol(jmax, &jmax_h, sizeof(int));
-    cudaMemcpyToSymbol(t_end, &t_end_h, sizeof(double));
-
-    cudaMemcpyToSymbol(del_t, &del_t_h, sizeof(double));
+    cudaMemcpyToSymbol(mx, &mx_h, sizeof(double));
+    cudaMemcpyToSymbol(my, &mx_h, sizeof(double));
+    cudaMemcpyToSymbol(rad1, &rad1_h, sizeof(double));
 }
 
 /**

@@ -16,6 +16,10 @@ extern __constant__ double t_end;	  /* Simulation runtime */
 extern __constant__ double delx;
 extern __constant__ double dely;
 
+extern __constant__ double mx;
+extern __constant__ double my;
+extern __constant__ double rad1;
+
 extern __constant__ double rdx2, rdy2, beta_2;
 
 extern __device__ int fluid_cells;

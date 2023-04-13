@@ -28,6 +28,10 @@ __constant__ double t_end; /* Simulation runtime */
 __constant__ double delx;
 __constant__ double dely;
 
+__constant__ double mx;
+__constant__ double my;
+__constant__ double rad1;
+
 __device__ int fluid_cells = 0;
 __device__ double del_t; /* Duration of each timestep */
 
@@ -49,9 +53,6 @@ __global__ void problem_set_up_kernel(double *u, double *v, double *p, char *fla
     }
 
     /* Mark a circular obstacle as boundary cells, the rest as fluid */
-    double mx = 20.0 / 41.0 * jmax * dely;
-    double my = mx;
-    double rad1 = 5.0 / 41.0 * jmax * dely;
     for (int i = 1; i <= imax; i++)
     {
         for (int j = 1; j <= jmax; j++)
