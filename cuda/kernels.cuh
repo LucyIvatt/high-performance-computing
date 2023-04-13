@@ -29,8 +29,10 @@ extern __device__ double del_t; /* Duration of each timestep */
 __global__ void setup_uvp_kernel(double *u, double *v, double *p);
 __global__ void setup_flag_kernel(char *flag);
 
-__global__ void boundary_conditions_kernel_1(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
-__global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag);
+__global__ void boundary_conditions_WE(double* u, double* v);
+__global__ void boundary_conditions_NS_kernel(double* u, double* v);
+__global__ void boundary_conditions_noslip_kernel(double *u, double *v, char *flag);
+__global__ void apply_boundary_conditions_west_edge_kernel(double *u, double *v);
 
 __global__ void tentative_velocity_update_f_kernel(double *u, double *v, double *f, char *flag);
 __global__ void tentative_velocity_update_g_kernel(double *u, double *v, double *g, char *flag);

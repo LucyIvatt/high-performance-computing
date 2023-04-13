@@ -23,9 +23,10 @@ double get_time()
 }
 
 void boundary_conditions(dim3 threads, dim3 blocks) {
-    boundary_conditions_kernel_1<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
-    cudaDeviceSynchronize();
-    apply_boundary_conditions_2<<<1, 1>>>(u, v, p, rhs, f, g, flag);
+    boundary_conditions_WE<<<blocks, threads>>>(u, v);
+    boundary_conditions_NS_kernel<<<blocks, threads>>>(u, v);
+    boundary_conditions_noslip_kernel<<<blocks, threads>>>(u, v, flag);
+    apply_boundary_conditions_west_edge_kernel<<<blocks, threads>>>(u, v);
     cudaDeviceSynchronize();
 }
 

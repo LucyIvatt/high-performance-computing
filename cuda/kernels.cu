@@ -92,13 +92,7 @@ __global__ void setup_flag_kernel(char *flag)
     }
 }
 
-/**
- * @brief Given the boundary conditions defined by the flag matrix, update
- * the u and v velocities. Also enforce the boundary conditions at the
- * edges of the matrix.
- */
-__global__ void boundary_conditions_kernel_1(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
-{
+__global__ void boundary_conditions_WE(double* u, double* v){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -112,6 +106,11 @@ __global__ void boundary_conditions_kernel_1(double *u, double *v, double *p, do
         u[ind(imax, j, u_size_y)] = u[ind(imax - 1, j, u_size_y)];
         v[ind(imax + 1, j, v_size_y)] = v[ind(imax, j, v_size_y)];
     }
+}
+
+__global__ void boundary_conditions_NS_kernel(double* u, double* v){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i < imax + 2)
     {
@@ -123,6 +122,18 @@ __global__ void boundary_conditions_kernel_1(double *u, double *v, double *p, do
         v[ind(i, 0, v_size_y)] = 0.0;
         u[ind(i, 0, u_size_y)] = u[ind(i, 1, u_size_y)];
     }
+}
+
+/**
+ * @brief Given the boundary conditions defined by the flag matrix, update
+ * the u and v velocities. Also enforce the boundary conditions at the
+ * edges of the matrix.
+ */
+__global__ void boundary_conditions_noslip_kernel(double *u, double *v, char *flag)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
 
     /* Apply no-slip boundary conditions to cells that are adjacent to
      * internal obstacle cells. This forces the u and v velocity to
@@ -184,13 +195,18 @@ __global__ void boundary_conditions_kernel_1(double *u, double *v, double *p, do
     }
 }
 
-__global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void apply_boundary_conditions_west_edge_kernel(double *u, double *v)
 {
     /* Finally, fix the horizontal velocity at the  western edge to have
      * a continual flow of fluid into the simulation.
      */
-    v[ind(0, 0, v_size_y)] = 2 * vi - v[ind(1, 0, v_size_y)];
-    for (int j = 1; j < jmax + 1; j++)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if(i == 0 && j == 0)
+        v[ind(0, 0, v_size_y)] = 2 * vi - v[ind(1, 0, v_size_y)];
+
+    if (j > 0 && j < jmax+1)
     {
         u[ind(0, j, u_size_y)] = ui;
         v[ind(0, j, v_size_y)] = 2 * vi - v[ind(1, j, v_size_y)];
