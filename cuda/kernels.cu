@@ -61,8 +61,6 @@ __global__ void setup_flag_kernel(char *flag)
         flag[ind(i, j, flag_size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
     }
 
-    __syncthreads();
-
     /* Mark the north & south boundary cells */
     if (i <= imax + 1)
     {
@@ -75,8 +73,6 @@ __global__ void setup_flag_kernel(char *flag)
         flag[ind(0, j, flag_size_y)] = C_B;
         flag[ind(imax + 1, j, flag_size_y)] = C_B;
     }
-
-    __syncthreads();
 
     /* flags for boundary cells */
     if (i > 0 && i <= imax && j > 0 && j <= jmax)
@@ -116,8 +112,6 @@ __global__ void boundary_conditions_kernel_1(double *u, double *v, double *p, do
         u[ind(imax, j, u_size_y)] = u[ind(imax - 1, j, u_size_y)];
         v[ind(imax + 1, j, v_size_y)] = v[ind(imax, j, v_size_y)];
     }
-
-    __syncthreads();
 
     if (i < imax + 2)
     {
