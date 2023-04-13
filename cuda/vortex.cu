@@ -106,7 +106,8 @@ void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
 
     allocate_arrays();
     
-    problem_set_up_kernel<<<1,1>>>(u, v, p, flag);
+    setup_uvp_kernel<<<blocks, threads>>>(u, v, p);
+    setup_flag_kernel<<<blocks, threads>>>(flag);
     cudaDeviceSynchronize();
 
     boundary_conditions(threads, blocks);

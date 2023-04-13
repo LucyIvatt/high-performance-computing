@@ -35,6 +35,67 @@ __constant__ double rad1;
 __device__ int fluid_cells = 0;
 __device__ double del_t; /* Duration of each timestep */
 
+__global__ void setup_uvp_kernel(double *u, double *v, double *p)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < imax + 2 && j < jmax + 2)
+    {
+        u[ind(i, j, u_size_y)] = ui;
+        v[ind(i, j, v_size_y)] = vi;
+        p[ind(i, j, p_size_y)] = 0.0;
+    }
+}
+
+__global__ void setup_flag_kernel(char *flag)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    /* Mark a circular obstacle as boundary cells, the rest as fluid */
+    if (i > 0 && i <= imax && j > 0 && j <= jmax)
+    {
+        double x = (i - 0.5) * delx - mx;
+        double y = (j - 0.5) * dely - my;
+        flag[ind(i, j, flag_size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
+    }
+
+    __syncthreads();
+
+    /* Mark the north & south boundary cells */
+    if (i <= imax + 1)
+    {
+        flag[ind(i, 0, flag_size_y)] = C_B;
+        flag[ind(i, jmax + 1, flag_size_y)] = C_B;
+    }
+    /* Mark the east and west boundary cells */
+    if (j > 0 && j <= jmax)
+    {
+        flag[ind(0, j, flag_size_y)] = C_B;
+        flag[ind(imax + 1, j, flag_size_y)] = C_B;
+    }
+
+    __syncthreads();
+
+    /* flags for boundary cells */
+    if (i > 0 && i <= imax && j > 0 && j <= jmax)
+    {
+        if (!(flag[ind(i, j, flag_size_y)] & C_F))
+        {
+            fluid_cells--;
+            if (flag[ind(i - 1, j, flag_size_y)] & C_F)
+                flag[ind(i, j, flag_size_y)] |= B_W;
+            if (flag[ind(i + 1, j, flag_size_y)] & C_F)
+                flag[ind(i, j, flag_size_y)] |= B_E;
+            if (flag[ind(i, j - 1, flag_size_y)] & C_F)
+                flag[ind(i, j, flag_size_y)] |= B_S;
+            if (flag[ind(i, j + 1, flag_size_y)] & C_F)
+                flag[ind(i, j, flag_size_y)] |= B_N;
+        }
+    }
+}
+
 /**
  * @brief Initialise the velocity arrays and then initialize the flag array,
  * marking any obstacle cells and the edge cells as boundaries. The cells
@@ -42,61 +103,6 @@ __device__ double del_t; /* Duration of each timestep */
  */
 __global__ void problem_set_up_kernel(double *u, double *v, double *p, char *flag)
 {
-    for (int i = 0; i < imax + 2; i++)
-    {
-        for (int j = 0; j < jmax + 2; j++)
-        {
-            u[ind(i, j, u_size_y)] = ui;
-            v[ind(i, j, v_size_y)] = vi;
-            p[ind(i, j, p_size_y)] = 0.0;
-        }
-    }
-
-    /* Mark a circular obstacle as boundary cells, the rest as fluid */
-    for (int i = 1; i <= imax; i++)
-    {
-        for (int j = 1; j <= jmax; j++)
-        {
-            double x = (i - 0.5) * delx - mx;
-            double y = (j - 0.5) * dely - my;
-            flag[ind(i, j, flag_size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
-        }
-    }
-
-    /* Mark the north & south boundary cells */
-    for (int i = 0; i <= imax + 1; i++)
-    {
-        flag[ind(i, 0, flag_size_y)] = C_B;
-        flag[ind(i, jmax + 1, flag_size_y)] = C_B;
-    }
-    /* Mark the east and west boundary cells */
-    for (int j = 1; j <= jmax; j++)
-    {
-        flag[ind(0, j, flag_size_y)] = C_B;
-        flag[ind(imax + 1, j, flag_size_y)] = C_B;
-    }
-
-    fluid_cells = imax * jmax;
-
-    /* flags for boundary cells */
-    for (int i = 1; i <= imax; i++)
-    {
-        for (int j = 1; j <= jmax; j++)
-        {
-            if (!(flag[ind(i, j, flag_size_y)] & C_F))
-            {
-                fluid_cells--;
-                if (flag[ind(i - 1, j, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_W;
-                if (flag[ind(i + 1, j, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_E;
-                if (flag[ind(i, j - 1, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_S;
-                if (flag[ind(i, j + 1, flag_size_y)] & C_F)
-                    flag[ind(i, j, flag_size_y)] |= B_N;
-            }
-        }
-    }
 }
 
 /**

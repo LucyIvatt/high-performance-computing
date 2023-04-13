@@ -48,6 +48,9 @@ void setup()
     cudaMemcpyToSymbol(mx, &mx_h, sizeof(double));
     cudaMemcpyToSymbol(my, &mx_h, sizeof(double));
     cudaMemcpyToSymbol(rad1, &rad1_h, sizeof(double));
+
+    int fluid_cells_h = imax_h * jmax_h;
+    cudaMemcpyToSymbol(fluid_cells, &fluid_cells_h, sizeof(int));
 }
 
 /**

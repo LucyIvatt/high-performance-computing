@@ -26,7 +26,10 @@ extern __device__ int fluid_cells;
 extern __device__ double del_t; /* Duration of each timestep */
 
 
-__global__ void problem_set_up_kernel(double* u, double* v, double* p, char* flag);
+__global__ void setup_uvp_kernel(double *u, double *v, double *p);
+__global__ void setup_flag_kernel(char *flag);
+
+
 __global__ void boundary_conditions_kernel_1(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag);
 
