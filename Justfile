@@ -8,7 +8,6 @@ VORTEX_CMD := "./vortex"
 
 # Viking-related folders and files
 VIKING_TEMPLATE := "./viking_run.sh.j2"
-VIKING_UPSTREAM_NAME := `mktemp -p /tmp -du hipcassessXXX`
 VIKING_BENCH_DIR := "~/scratch/hipc_benches"
 VIKING_BENCH_RESULTS_DIR := `mktemp -p /tmp -du hipcbenchXXX`
 
@@ -126,12 +125,12 @@ lab_script *args="":
 # Upload a file to viking, defaults to recursive
 [private]
 viking_rsync_to src dest args="-r":
-    sshpass -e rsync {{ args }} "{{ src }}" "{{ YORK_USER }}@viking.york.ac.uk:{{ dest }}"
+    rsync {{ args }} "{{ src }}" "{{ YORK_USER }}@viking.york.ac.uk:{{ dest }}"
 
 # Download a file from viking
 [private]
 viking_rsync_from src dest args="":
-    sshpass -e rsync {{ args }} "{{ YORK_USER }}@viking.york.ac.uk:{{ src }}" "{{ dest }}"
+    rsync {{ args }} "{{ YORK_USER }}@viking.york.ac.uk:{{ src }}" "{{ dest }}"
 
 # Call `ssh` for viking
 viking_ssh cmd="":
@@ -139,12 +138,12 @@ viking_ssh cmd="":
 alias vs := viking_ssh
 
 # Run a target as a batch job on viking
-viking_run target *args="": (clean target)
-    mkdir -p "{{ VIKING_UPSTREAM_NAME }}"
-    cd "{{ VIKING_UPSTREAM_NAME }}" && rm -rf "*" ".*"
-    cp -rv "{{ target }}" "{{ VIKING_UPSTREAM_NAME }}"
+viking_run target folder=`mktemp -du /tmp/hipcassessXXX` *args="": (clean target)
+    mkdir -p "{{ folder }}"
+    cd "{{ folder }}" && rm -rf "*" ".*"
+    cp -rv "{{ target }}" "{{ folder }}"
     jinja2 \
-        -o "{{ VIKING_UPSTREAM_NAME }}/run_{{ target }}.job" "{{ VIKING_TEMPLATE }}" \
+        -o "{{ folder }}/run_{{ target }}.job" "{{ VIKING_TEMPLATE }}" \
         -D 'ntasks={{ VIKING_NUM_TASKS }}' \
         -D 'module={{ VIKING_MODULE }}' \
         -D 'partition={{ VIKING_PARTITION }}' \
@@ -154,42 +153,39 @@ viking_run target *args="": (clean target)
         -D 'mem={{ VIKING_MEMORY }}' \
         -D build_cmd='(cd {{ target }} && make)' \
         -D run_cmd='(cd {{ target }} && {{ VORTEX_CMD }} {{ args }})'
-    # cat "{{ VIKING_UPSTREAM_NAME }}/run_{{ target }}.job"
-    chmod +x "{{ VIKING_UPSTREAM_NAME }}/run_{{ target }}.job"
-    just viking_rsync_to "{{ VIKING_UPSTREAM_NAME }}" "scratch"
+    # cat "{{ folder }}/run_{{ target }}.job"
+    chmod +x "{{ folder }}/run_{{ target }}.job"
+    just viking_rsync_to "{{ folder }}" "scratch"
     just viking_ssh \
-        'cd ~/scratch/$(basename {{ VIKING_UPSTREAM_NAME }}) && \
+        'cd ~/scratch/$(basename {{ folder }}) && \
         sbatch ./run_{{ target }}.job'
-    @printf "\n==================================================\nViking job run in directory $(basename {{ VIKING_UPSTREAM_NAME }})\n\n"
+    @printf "\n==================================================\nViking job run in directory $(basename {{ folder }})\n\n"
 
 # Helper for viking_run for openmp
-viking_run_openmp cpus="20" *args="":
+viking_run_openmp folder cpus="20" *args="":
     just \
-        'VIKING_UPSTREAM_NAME={{ VIKING_UPSTREAM_NAME }}' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_CPUS_PT={{ cpus }} \
         VORTEX_CMD="OMP_NUM_THREADS={{ cpus }} {{ VORTEX_CMD }}" \
-        viking_run "openmp" {{ args }}
+        viking_run "openmp" "{{ folder }}" {{ args }}
 
 # Helper for viking_run for cuda
-viking_run_cuda *args="":
+viking_run_cuda folder *args="":
     just \
-        'VIKING_UPSTREAM_NAME={{ VIKING_UPSTREAM_NAME }}' \
         VIKING_PARTITION=gpu \
         VIKING_SLURM_ARGS='#SBATCH --gres=gpu:1' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=system/CUDA/11.1.1-GCC-10.2.0 \
         VIKING_CPUS_PT=1 \
-        viking_run "cuda" {{ args }}
+        viking_run "cuda" "{{ folder }}" {{ args }}
 
 # Helper for viking_run for mpi
-viking_run_mpi tasks="9" *args="":
+viking_run_mpi folder tasks="9" *args="":
     just \
-        'VIKING_UPSTREAM_NAME={{ VIKING_UPSTREAM_NAME }}' \
         VORTEX_CMD="mpirun -n {{ tasks }}" \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=mpi/OpenMPI/4.1.1-GCC-11.2.0 \
-        viking_run "mpi" {{ tasks }} "1" {{ args }}
+        viking_run "mpi" "{{ folder }}" {{ tasks }} "1" {{ args }}
 
 # View the viking job queue
 viking_queue: (viking_ssh "squeue -u " + YORK_USER)
@@ -201,25 +197,21 @@ viking_bench_run jump="500" max="5000" targets=TARGETS omp_cpus="20" mpi_tasks="
     let targets = std.split("{{ targets }}", " ")
     for size in std.range({{ jump }}, {{ max }}, {{ jump }}) do
         if std.contains(targets, "original") then
-            { just VIKING_UPSTREAM_NAME=/tmp/hipc_original_${size}
-                    VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run original -x $size -y $size -n }
+            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
+                    viking_run original /tmp/hipc_original_${size} -x $size -y $size -n }
         end
         if std.contains(targets, "openmp") then
-            { just VIKING_UPSTREAM_NAME=/tmp/hipc_openmp_${size}
-                    VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run_openmp {{ omp_cpus }}
+            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
+                    viking_run_openmp /tmp/hipc_openmp_${size} {{ omp_cpus }}
                         -x $size -y $size -n }
         end
         if std.contains(targets, "cuda") then
-            { just VIKING_UPSTREAM_NAME=/tmp/hipc_cuda_${size}
-                    VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run_cuda -x $size -y $size -n }
+            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
+                    viking_run_cuda /tmp/hipc_cuda_${size} -x $size -y $size -n }
         end
         if std.contains(targets, "mpi") then
-            { just VIKING_UPSTREAM_NAME=/tmp/hipc_mpi_${size}
-                    VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run_mpi {{ mpi_tasks }} {{ mpi_dims }}
+            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
+                    viking_run_mpi /tmp/hipc_mpi_${size} {{ mpi_tasks }} {{ mpi_dims }}
                         -x $size -y $size -n }
         end
     end
