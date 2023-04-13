@@ -23,11 +23,22 @@ double get_time()
 }
 
 void boundary_conditions(dim3 threads, dim3 blocks) {
-    boundary_conditions_WE<<<blocks, threads>>>(u, v);
-    boundary_conditions_NS_kernel<<<blocks, threads>>>(u, v);
-    boundary_conditions_noslip_kernel<<<blocks, threads>>>(u, v, flag);
-    apply_boundary_conditions_west_edge_kernel<<<blocks, threads>>>(u, v);
+    cudaStream_t s1, s2, s3, s4;
+    cudaStreamCreate(&s1);
+    cudaStreamCreate(&s2);
+
+
+    boundary_conditions_WE<<<blocks, threads, 0, s1>>>(u, v);
+    boundary_conditions_NS_kernel<<<blocks, threads, 0, s2>>>(u, v);
+    cudaStreamSynchronize(s1);
+    cudaStreamSynchronize(s2);
+    boundary_conditions_noslip_kernel<<<blocks, threads, 0, s1>>>(u, v, flag);
+    apply_boundary_conditions_west_edge_kernel<<<blocks, threads, 0, s2>>>(u, v);
     cudaDeviceSynchronize();
+
+    cudaStreamDestroy(s1);
+    cudaStreamDestroy(s2);
+
 }
 
 void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
@@ -47,11 +58,22 @@ void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
 }
 
 void compute_tentative_velocity(dim3 threads, dim3 blocks){
-    tentative_velocity_update_f_kernel<<<blocks, threads>>>(u, v, f, flag);
-    tentative_velocity_update_g_kernel<<<blocks, threads>>>(u, v, g, flag);
-    tentative_velocity_g_boundaries_kernel<<<blocks, threads>>>(g, v);
-    tentative_velocity_f_boundaries_kernel<<<blocks, threads>>>(f, u);
+    cudaStream_t s1, s2, s3, s4;
+    cudaStreamCreate(&s1);
+    cudaStreamCreate(&s2);
+    cudaStreamCreate(&s3);
+    cudaStreamCreate(&s4);
+    
+    tentative_velocity_update_f_kernel<<<blocks, threads, 0, s1>>>(u, v, f, flag);
+    tentative_velocity_update_g_kernel<<<blocks, threads, 0, s2>>>(u, v, g, flag);
+    tentative_velocity_g_boundaries_kernel<<<blocks, threads, 0, s3>>>(g, v);
+    tentative_velocity_f_boundaries_kernel<<<blocks, threads, 0, s4>>>(f, u);
     cudaDeviceSynchronize();
+
+    cudaStreamDestroy(s1);
+    cudaStreamDestroy(s2);
+    cudaStreamDestroy(s3);
+    cudaStreamDestroy(s4);
 }
 
 void compute_rhs(dim3 threads, dim3 blocks) {
@@ -94,16 +116,16 @@ void poisson(dim3 threads, dim3 blocks, int reduction_threads)
 }
 
 void update_velocity(dim3 threads, dim3 blocks) {
-    cudaStream_t stream1, stream2;
-    cudaStreamCreate(&stream1);
-    cudaStreamCreate(&stream2);
+    cudaStream_t s1, s2;
+    cudaStreamCreate(&s1);
+    cudaStreamCreate(&s2);
 
-    update_velocity_u_kernel<<<blocks, threads, 0, stream1>>>(u, v, p, rhs, f, g, flag);
-    update_velocity_v_kernel<<<blocks, threads, 0, stream2>>>(u, v, p, rhs, f, g, flag);
+    update_velocity_u_kernel<<<blocks, threads, 0, s1>>>(u, v, p, rhs, f, g, flag);
+    update_velocity_v_kernel<<<blocks, threads, 0, s2>>>(u, v, p, rhs, f, g, flag);
     cudaDeviceSynchronize();
 
-    cudaStreamDestroy(stream1);
-    cudaStreamDestroy(stream2);
+    cudaStreamDestroy(s1);
+    cudaStreamDestroy(s2);
 }
 
 void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
@@ -117,10 +139,17 @@ void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
         print_opts();
 
     allocate_arrays();
+
+    cudaStream_t stream1, stream2;
+    cudaStreamCreate(&stream1);
+    cudaStreamCreate(&stream2);
     
-    setup_uvp_kernel<<<blocks, threads>>>(u, v, p);
-    setup_flag_kernel<<<blocks, threads>>>(flag);
+    setup_uvp_kernel<<<blocks, threads, 0, stream1>>>(u, v, p);
+    setup_flag_kernel<<<blocks, threads, 0, stream2>>>(flag);
     cudaDeviceSynchronize();
+
+    cudaStreamDestroy(stream1);
+    cudaStreamDestroy(stream2);
 
     boundary_conditions(threads, blocks);
 }
