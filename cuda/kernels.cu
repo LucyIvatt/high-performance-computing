@@ -92,8 +92,7 @@ __global__ void setup_flag_kernel(char *flag)
     }
 }
 
-__global__ void boundary_conditions_WE(double* u, double* v){
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
+__global__ void boundary_conditions_WE_kernel(double* u, double* v){
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (j < jmax + 2)
@@ -110,7 +109,6 @@ __global__ void boundary_conditions_WE(double* u, double* v){
 
 __global__ void boundary_conditions_NS_kernel(double* u, double* v){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i < imax + 2)
     {
