@@ -39,11 +39,13 @@ void boundary_conditions(dim3 threads, dim3 blocks) {
     // Runs noslip and boundary condition kernels in parallel
     boundary_conditions_noslip_kernel<<<blocks, threads, 0, s1>>>(u, v, flag);
     apply_boundary_conditions_west_edge_kernel<<<blocks, threads, 0, s2>>>(u, v);
-    cudaDeviceSynchronize();
 
     // Closes additional streams when completed
     cudaStreamDestroy(s1);
     cudaStreamDestroy(s2);
+
+    // Makes function inline with default stream
+    cudaDeviceSynchronize();
 }
 
 void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
@@ -52,7 +54,6 @@ void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
     abs_max_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(v, vmax_red, 1);
     abs_max_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double)>>>(umax_red, umax_g, blocks.x, blocks.y);
     abs_max_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double)>>>(vmax_red, vmax_g, blocks.x, blocks.y);
-    cudaDeviceSynchronize();
 
     // Completes the final sequential part of 
     set_timestep_interval_kernel<<<1, 1>>>(umax_g, vmax_g);
@@ -77,45 +78,40 @@ void compute_tentative_velocity(dim3 threads, dim3 blocks){
     cudaStreamDestroy(s2);
     cudaStreamDestroy(s3);
     cudaStreamDestroy(s4);
-}
+    
+    // Makes function inline with default stream
+    cudaDeviceSynchronize();
+    }
 
 void compute_rhs(dim3 threads, dim3 blocks) {
     compute_rhs_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
-    cudaDeviceSynchronize();
 }
 
 void poisson(dim3 threads, dim3 blocks, int reduction_threads)
 {
     /* p0 Reduction*/
     p0_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(p, flag, p0_reductions);
-    cudaDeviceSynchronize();
     p0_reduction_global_kernel<<<1, threads, reduction_threads * sizeof(double)>>>(p0_reductions, p0, blocks.x, blocks.y);
-    cudaDeviceSynchronize();
 
     /* Red/Black SOR-iteration */
     for (int iter = 0; iter < itermax; iter++)
     {
         // Star computation for even indicies then odd indicies
         star_computation_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag, 0);
-        cudaDeviceSynchronize();
         star_computation_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag, 1);
-        cudaDeviceSynchronize();
 
         /* Residual Reduction */
         residual_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
-        cudaDeviceSynchronize();
         residual_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double)>>>(residual_reductions, residual, blocks.x, blocks.y, p0);
         cudaDeviceSynchronize();
 
         // Copies residual to host code so it can be checked against eps (and printed in main vortex loop)
         cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
-        cudaDeviceSynchronize();
 
         /* convergence? */
         if (residual_h < eps)
             break;
     }
-    cudaDeviceSynchronize();
 }
 
 void update_velocity(dim3 threads, dim3 blocks) {
@@ -129,6 +125,9 @@ void update_velocity(dim3 threads, dim3 blocks) {
 
     cudaStreamDestroy(s1);
     cudaStreamDestroy(s2);
+
+    // Makes function inline with default stream
+    cudaDeviceSynchronize();
 }
 
 void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
@@ -153,6 +152,9 @@ void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
 
     cudaStreamDestroy(stream1);
     cudaStreamDestroy(stream2);
+
+    // Makes function inline with default stream
+    cudaDeviceSynchronize();
 
     boundary_conditions(threads, blocks);
 }
@@ -227,12 +229,14 @@ int main(int argc, char *argv[])
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t_h, del_t_h, residual_h);
 
             if ((!no_output) && (enable_checkpoints)) {
+                cudaDeviceSynchronize();
                 update_host_arrays();
                 write_checkpoint(iters, t + del_t_h);
             }
         }
     } /* End of main loop */
  
+    cudaDeviceSynchronize();
     update_host_arrays();
 
     total_time = get_time() - total_time;
