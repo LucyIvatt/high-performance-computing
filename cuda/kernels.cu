@@ -36,7 +36,7 @@ __device__ double del_t; /* Duration of each timestep */
  * marking any obstacle cells and the edge cells as boundaries. The cells
  * adjacent to boundary cells have their relevant flags set too.
  */
-__global__ void problem_set_up(double *u, double *v, double *p, char *flag)
+__global__ void problem_set_up_kernel(double *u, double *v, double *p, char *flag)
 {
     for (int i = 0; i < imax + 2; i++)
     {
@@ -103,7 +103,7 @@ __global__ void problem_set_up(double *u, double *v, double *p, char *flag)
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
  */
-__global__ void apply_boundary_conditions(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void boundary_conditions_kernel_1(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -209,7 +209,7 @@ __global__ void apply_boundary_conditions_2(double *u, double *v, double *p, dou
  * @brief Computation of tentative velocity field (f, g)
  *
  */
-__global__ void compute_tentative_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void compute_tentative_velocity_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -285,7 +285,7 @@ __global__ void compute_tentative_velocity(double *u, double *v, double *p, doub
  * @brief Calculate the right hand side of the pressure equation
  *
  */
-__global__ void compute_rhs(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void compute_rhs_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -303,7 +303,7 @@ __global__ void compute_rhs(double *u, double *v, double *p, double *rhs, double
     }
 }
 
-__global__ void p0_reduction_s(double *p, char *flag, double *global_reductions)
+__global__ void p0_reduction_blocks_kernel(double *p, char *flag, double *global_reductions)
 {
     extern __shared__ double block_reductions[];
 
@@ -347,7 +347,7 @@ __global__ void p0_reduction_s(double *p, char *flag, double *global_reductions)
         global_reductions[bid] = block_reductions[0];
 }
 
-__global__ void p0_reduction_e(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y)
+__global__ void p0_reduction_global_kernel(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y)
 {
     extern __shared__ double final_reductions[];
 
@@ -388,7 +388,7 @@ __global__ void p0_reduction_e(double *global_reductions, double *p0, int num_bl
     }
 }
 
-__global__ void star_computation(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag, int rb)
+__global__ void star_computation_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag, int rb)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -418,7 +418,7 @@ __global__ void star_computation(double *u, double *v, double *p, double *rhs, d
     }
 }
 
-__global__ void residual_reduction_s(double *p, double *rhs, char *flag, double *global_reductions)
+__global__ void residual_reduction_blocks_kernel(double *p, double *rhs, char *flag, double *global_reductions)
 {
     extern __shared__ double block_reductions[];
 
@@ -470,7 +470,7 @@ __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double 
         global_reductions[bid] = block_reductions[0];
 }
 
-__global__ void residual_reduction_e(double *global_reductions, double *residual, int num_blocks_x, int num_blocks_y, double *p0)
+__global__ void residual_reduction_global_kernel(double *global_reductions, double *residual, int num_blocks_x, int num_blocks_y, double *p0)
 {
     extern __shared__ double final_reductions[];
 
@@ -507,55 +507,10 @@ __global__ void residual_reduction_e(double *global_reductions, double *residual
 }
 
 /**
- * @brief Red/Black SOR to solve the poisson equation.
- *
- * @return Calculated residual of the computation
- *
- */
-void poisson()
-{
-    dim3 threadsPerBlock(16, 16);
-    dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
-                   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
-
-    int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
-
-    /* PARALLEL REDUCTION OF P0 - WORKS*/
-    p0_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, flag, p0_reductions);
-    cudaDeviceSynchronize();
-    p0_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(p0_reductions, p0, numBlocks.x, numBlocks.y);
-    cudaDeviceSynchronize();
-
-    /* Red/Black SOR-iteration */
-    for (int iter = 0; iter < itermax; iter++)
-    {
-        // Star computation for even indicies then odd indicies
-        star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 0);
-        cudaDeviceSynchronize();
-        star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 1);
-        cudaDeviceSynchronize();
-
-        /* PARALLEL REDUCTION OF RESIDUAL */
-        residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
-        cudaDeviceSynchronize();
-        residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
-        cudaDeviceSynchronize();
-
-        // Copies residual to host code so it can be checked against eps (and printed in main vortex loop)
-        cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
-        cudaDeviceSynchronize();
-
-        /* convergence? */
-        if (residual_h < eps)
-            break;
-    }
-}
-
-/**
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-__global__ void update_velocity(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+__global__ void update_velocity_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -583,7 +538,7 @@ __global__ void update_velocity(double *u, double *v, double *p, double *rhs, do
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-__global__ void set_timestep_interval(double *umax_g, double *vmax_g)
+__global__ void set_timestep_interval_kernel(double *umax_g, double *vmax_g)
 {
     *umax_g = fmax(*umax_g, 1.0e-10);
     *vmax_g = fmax(*vmax_g, 1.0e-10);
@@ -603,7 +558,7 @@ __global__ void set_timestep_interval(double *umax_g, double *vmax_g)
     del_t = tau * del_t; /* multiply by safety factor */
 }
 
-__global__ void umax_vmax_reduction_s(double *array, double *global_reductions, int version)
+__global__ void abs_max_reduction_blocks_kernel(double *array, double *global_reductions, int version)
 {
     extern __shared__ double block_reductions[];
 
@@ -643,7 +598,7 @@ __global__ void umax_vmax_reduction_s(double *array, double *global_reductions, 
         global_reductions[bid] = block_reductions[0];
 }
 
-__global__ void umax_vmax_reduction_e(double *global_reductions, double *output_val, int num_blocks_x, int num_blocks_y)
+__global__ void abs_max_reduction_global_kernel(double *global_reductions, double *output_val, int num_blocks_x, int num_blocks_y)
 {
     extern __shared__ double final_reductions[];
 

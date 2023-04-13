@@ -22,21 +22,22 @@ extern __device__ int fluid_cells;
 extern __device__ double del_t; /* Duration of each timestep */
 
 
-__global__ void problem_set_up(double* u, double* v, double* p, char* flag);
-__global__ void apply_boundary_conditions(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void problem_set_up_kernel(double* u, double* v, double* p, char* flag);
+__global__ void boundary_conditions_kernel_1(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
 __global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag);
 
-__global__ void compute_tentative_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
-__global__ void compute_rhs(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
-__global__ void update_velocity(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
-__global__ void set_timestep_interval(double* umax, double* vmax);
+__global__ void compute_tentative_velocity_kernel(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void compute_rhs_kernel(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void update_velocity_kernel(double* u, double* v, double* p, double* rhs, double* f, double* g, char* flag);
+__global__ void set_timestep_interval_kernel(double* umax, double* vmax);
 
-__global__ void p0_reduction_s(double *p, char *flag, double *global_reductions);
-__global__ void p0_reduction_e(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y);
+__global__ void p0_reduction_blocks_kernel(double *p, char *flag, double *global_reductions);
+__global__ void p0_reduction_global_kernel(double *global_reductions, double *p0, int num_blocks_x, int num_blocks_y);
+__global__ void star_computation_kernel(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag, int rb);
+__global__ void residual_reduction_blocks_kernel(double *p, double *rhs, char *flag, double *global_reductions);
+__global__ void residual_reduction_global_kernel(double *global_reductions, double *residual, int num_blocks_x, int num_blocks_y, double *p0);
 
-__global__ void umax_vmax_reduction_s(double *array, double *global_reductions, int version);
-__global__ void umax_vmax_reduction_e(double *global_reductions, double *output_val, int num_blocks_x, int num_blocks_y);
-
-void poisson();
+__global__ void abs_max_reduction_blocks_kernel(double *array, double *global_reductions, int version);
+__global__ void abs_max_reduction_global_kernel(double *global_reductions, double *output_val, int num_blocks_x, int num_blocks_y);
 
 #endif

@@ -22,10 +22,95 @@ double get_time()
     return (double)(timer.tv_sec + timer.tv_nsec / 1000000000.0);
 }
 
-void timestamp_reductions(){
-    
+void boundary_conditions(dim3 threads, dim3 blocks) {
+    boundary_conditions_kernel_1<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    cudaDeviceSynchronize();
+    apply_boundary_conditions_2<<<1, 1>>>(u, v, p, rhs, f, g, flag);
+    cudaDeviceSynchronize();
 }
 
+void timestep_interval(dim3 threads, dim3 blocks, int reduction_threads){
+    // Completes the reductions to find the absolute maximum from the u and v arrays
+    
+    abs_max_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(u, umax_red, 0);
+    abs_max_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(v, vmax_red, 1);
+    cudaDeviceSynchronize();
+    abs_max_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double)>>>(umax_red, umax_g, blocks.x, blocks.y);
+    abs_max_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double)>>>(vmax_red, vmax_g, blocks.x, blocks.y);
+    cudaDeviceSynchronize();
+
+    // Completes the final sequential part of 
+    set_timestep_interval_kernel<<<1, 1>>>(umax_g, vmax_g);
+    cudaDeviceSynchronize();
+    cudaMemcpyFromSymbol(&del_t_h, del_t, sizeof(double));
+}
+
+void compute_tentative_velocity(dim3 threads, dim3 blocks){
+    compute_tentative_velocity_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    cudaDeviceSynchronize();
+}
+
+void compute_rhs(dim3 threads, dim3 blocks) {
+    compute_rhs_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    cudaDeviceSynchronize();
+}
+
+void poisson(dim3 threads, dim3 blocks, int reduction_threads)
+{
+    /* p0 Reduction*/
+    p0_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(p, flag, p0_reductions);
+    cudaDeviceSynchronize();
+    p0_reduction_global_kernel<<<1, threads, reduction_threads * sizeof(double)>>>(p0_reductions, p0, blocks.x, blocks.y);
+    cudaDeviceSynchronize();
+
+    /* Red/Black SOR-iteration */
+    for (int iter = 0; iter < itermax; iter++)
+    {
+        // Star computation for even indicies then odd indicies
+        star_computation_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag, 0);
+        cudaDeviceSynchronize();
+        star_computation_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag, 1);
+        cudaDeviceSynchronize();
+
+        /* Residual Reduction */
+        residual_reduction_blocks_kernel<<<blocks, threads, threads.x * threads.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
+        cudaDeviceSynchronize();
+        residual_reduction_global_kernel<<<1, reduction_threads, reduction_threads * sizeof(double)>>>(residual_reductions, residual, blocks.x, blocks.y, p0);
+        cudaDeviceSynchronize();
+
+        // Copies residual to host code so it can be checked against eps (and printed in main vortex loop)
+        cudaMemcpy(&residual_h, residual, sizeof(double), cudaMemcpyDeviceToHost);
+        cudaDeviceSynchronize();
+
+        /* convergence? */
+        if (residual_h < eps)
+            break;
+    }
+    cudaDeviceSynchronize();
+}
+
+void update_velocity(dim3 threads, dim3 blocks) {
+    update_velocity_kernel<<<blocks, threads>>>(u, v, p, rhs, f, g, flag);
+    cudaDeviceSynchronize();
+}
+
+void program_start(dim3 threads, dim3 blocks, int argc, char *argv[]){
+    set_defaults();
+    parse_args(argc, argv);
+
+    setup();
+    cudaDeviceSynchronize();
+
+    if (verbose)
+        print_opts();
+
+    allocate_arrays();
+    
+    problem_set_up_kernel<<<1,1>>>(u, v, p, flag);
+    cudaDeviceSynchronize();
+
+    boundary_conditions(threads, blocks);
+}
 
 
 /**
@@ -37,9 +122,11 @@ void timestamp_reductions(){
  */
 int main(int argc, char *argv[])
 {
+    // Number of threads and blocks required when running one thread per grid cell
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
 				   (jmax_h + 2 + threadsPerBlock.y - 1) / threadsPerBlock.y);
+    int reduction_threads = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
 
     /* Timer Initialisations */
     double total_time = get_time();
@@ -57,24 +144,7 @@ int main(int argc, char *argv[])
     double update_velocity_start;
     double apply_boundary_conditions_start;
 
-    set_defaults();
-    parse_args(argc, argv);
-
-    setup();
-    cudaDeviceSynchronize();
-
-    if (verbose)
-        print_opts();
-
-    allocate_arrays();
-    
-    problem_set_up<<<1,1>>>(u, v, p, flag);
-    cudaDeviceSynchronize();
-
-    apply_boundary_conditions<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
-    cudaDeviceSynchronize();
-    apply_boundary_conditions_2<<<1, 1>>>(u, v, p, rhs, f, g, flag);
-    cudaDeviceSynchronize();
+    program_start(threadsPerBlock, numBlocks, argc, argv);
 
     setup_time = get_time() - setup_time;
 
@@ -84,53 +154,37 @@ int main(int argc, char *argv[])
     for (t = 0.0; t < t_end_h; t += del_t_h, iters++)
     {
         if (!fixed_dt) {
-            umax_vmax_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(u, umax_red, 0);
-            umax_vmax_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(v, vmax_red, 1);
-            cudaDeviceSynchronize();
-            int new_thread_num = pow(2, ceil(log2(numBlocks.x * numBlocks.y)));
-            umax_vmax_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(umax_red, umax_g, numBlocks.x, numBlocks.y);
-            umax_vmax_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(vmax_red, vmax_g, numBlocks.x, numBlocks.y);
-            cudaDeviceSynchronize();
-            set_timestep_interval<<<1, 1>>>(umax_g, vmax_g);
-            cudaDeviceSynchronize();
-            cudaMemcpyFromSymbol(&del_t_h, del_t, sizeof(double));
+            timestep_interval(threadsPerBlock, numBlocks, reduction_threads);
         }
 
         tentative_velocity_start = get_time();
-        compute_tentative_velocity<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
-        cudaDeviceSynchronize();
+        compute_tentative_velocity(threadsPerBlock, numBlocks);
         tentative_velocity_time += get_time() - tentative_velocity_start;
 
         rhs_start = get_time();
-        compute_rhs<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
-        cudaDeviceSynchronize();
+        compute_rhs(threadsPerBlock, numBlocks);
         rhs_time += get_time() - rhs_start;
 
         poisson_start = get_time();
-        
-        poisson();
-
-        cudaDeviceSynchronize();
+        poisson(threadsPerBlock, numBlocks, reduction_threads);
         poisson_time += get_time() - poisson_start;
 
         update_velocity_start = get_time();
-        update_velocity<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
-        cudaDeviceSynchronize();
+        update_velocity(threadsPerBlock, numBlocks);
         update_velocity_time += get_time() - update_velocity_start;
 
         apply_boundary_conditions_start = get_time();
-        apply_boundary_conditions<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
-        cudaDeviceSynchronize();
-        apply_boundary_conditions_2<<<1, 1>>>(u, v, p, rhs, f, g, flag);
-        cudaDeviceSynchronize();
+        boundary_conditions(threadsPerBlock, numBlocks);
         apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 
         if ((iters % output_freq == 0))
         {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t_h, del_t_h, residual_h);
 
-            if ((!no_output) && (enable_checkpoints))
+            if ((!no_output) && (enable_checkpoints)) {
+                update_host_arrays();
                 write_checkpoint(iters, t + del_t_h);
+            }
         }
     } /* End of main loop */
  
