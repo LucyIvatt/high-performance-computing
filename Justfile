@@ -126,12 +126,12 @@ lab_script *args="":
 # Upload a file to viking, defaults to recursive
 [private]
 viking_rsync_to src dest args="-r":
-    rsync {{ args }} "{{ src }}" "{{ YORK_USER }}@viking.york.ac.uk:{{ dest }}"
+    sshpass -e rsync {{ args }} "{{ src }}" "{{ YORK_USER }}@viking.york.ac.uk:{{ dest }}"
 
 # Download a file from viking
 [private]
 viking_rsync_from src dest args="":
-    rsync {{ args }} "{{ YORK_USER }}@viking.york.ac.uk:{{ src }}" "{{ dest }}"
+    sshpass -e rsync {{ args }} "{{ YORK_USER }}@viking.york.ac.uk:{{ src }}" "{{ dest }}"
 
 # Call `ssh` for viking
 viking_ssh cmd="":
