@@ -132,73 +132,68 @@ __global__ void apply_boundary_conditions(double *u, double *v, double *p, doubl
         u[ind(i, 0, u_size_y)] = u[ind(i, 1, u_size_y)];
     }
 
-    
-}
-
-__global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
-{
     /* Apply no-slip boundary conditions to cells that are adjacent to
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
-    
-    for (int i = 1; i < imax + 1; i++)
+
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
-        for (int j = 1; j < jmax + 1; j++)
+        if (flag[ind(i, j, flag_size_y)] & B_NSEW)
         {
-            if (flag[ind(i, j, flag_size_y)] & B_NSEW)
+            switch (flag[ind(i, j, flag_size_y)])
             {
-                switch (flag[ind(i, j, flag_size_y)])
-                {
-                case B_N:
-                    v[ind(i, j, v_size_y)] = 0.0;
-                    u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
-                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
-                    break;
-                case B_E:
-                    u[ind(i, j, u_size_y)] = 0.0;
-                    v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
-                    v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
-                    break;
-                case B_S:
-                    v[ind(i, j - 1, v_size_y)] = 0.0;
-                    u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
-                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
-                    break;
-                case B_W:
-                    u[ind(i - 1, j, u_size_y)] = 0.0;
-                    v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
-                    v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
-                    break;
-                case B_NE:
-                    v[ind(i, j, v_size_y)] = 0.0;
-                    u[ind(i, j, u_size_y)] = 0.0;
-                    v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
-                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
-                    break;
-                case B_SE:
-                    v[ind(i, j - 1, v_size_y)] = 0.0;
-                    u[ind(i, j, u_size_y)] = 0.0;
-                    v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
-                    u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
-                    break;
-                case B_SW:
-                    v[ind(i, j - 1, v_size_y)] = 0.0;
-                    u[ind(i - 1, j, u_size_y)] = 0.0;
-                    v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
-                    u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
-                    break;
-                case B_NW:
-                    v[ind(i, j, v_size_y)] = 0.0;
-                    u[ind(i - 1, j, u_size_y)] = 0.0;
-                    v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
-                    u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
-                    break;
-                }
+            case B_N:
+                v[ind(i, j, v_size_y)] = 0.0;
+                u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
+                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
+                break;
+            case B_E:
+                u[ind(i, j, u_size_y)] = 0.0;
+                v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
+                v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
+                break;
+            case B_S:
+                v[ind(i, j - 1, v_size_y)] = 0.0;
+                u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
+                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
+                break;
+            case B_W:
+                u[ind(i - 1, j, u_size_y)] = 0.0;
+                v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
+                v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
+                break;
+            case B_NE:
+                v[ind(i, j, v_size_y)] = 0.0;
+                u[ind(i, j, u_size_y)] = 0.0;
+                v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
+                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
+                break;
+            case B_SE:
+                v[ind(i, j - 1, v_size_y)] = 0.0;
+                u[ind(i, j, u_size_y)] = 0.0;
+                v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
+                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
+                break;
+            case B_SW:
+                v[ind(i, j - 1, v_size_y)] = 0.0;
+                u[ind(i - 1, j, u_size_y)] = 0.0;
+                v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
+                u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
+                break;
+            case B_NW:
+                v[ind(i, j, v_size_y)] = 0.0;
+                u[ind(i - 1, j, u_size_y)] = 0.0;
+                v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
+                u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
+                break;
             }
         }
     }
+}
 
+__global__ void apply_boundary_conditions_2(double *u, double *v, double *p, double *rhs, double *f, double *g, char *flag)
+{
     /* Finally, fix the horizontal velocity at the  western edge to have
      * a continual flow of fluid into the simulation.
      */
@@ -423,35 +418,6 @@ __global__ void star_computation(double *u, double *v, double *p, double *rhs, d
     }
 }
 
-__global__ void residual_s(double *residual, double *p0, char *flag, double *p, double *rhs)
-{
-    /* computation of residual */
-    for (int i = 1; i < imax + 1; i++)
-    {
-        for (int j = 1; j < jmax + 1; j++)
-        {
-            if (flag[ind(i, j, flag_size_y)] & C_F)
-            {
-                double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-                double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-
-                /* only fluid cells */
-                double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                              eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
-                                 rdx2 +
-                             (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                              eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
-                                 rdy2 -
-                             rhs[ind(i, j, rhs_size_y)];
-                *residual += add * add;
-            }
-        }
-    }
-    *residual = sqrt(*residual / fluid_cells) / *p0;
-}
-
 __global__ void residual_reduction_s(double *p, double *rhs, char *flag, double *global_reductions)
 {
     extern __shared__ double block_reductions[];
@@ -569,11 +535,7 @@ void poisson()
         star_computation<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag, 1);
         cudaDeviceSynchronize();
 
-        /* SEQUENTIAL CALCULATION OF RESIDUAL - WORKS*/
-        // residual_s<<<1, 1>>>(residual, p0, flag, p, rhs);
-        // cudaDeviceSynchronize();
-
-        /* PARALLEL REDUCTION OF RESIDUAL - DOESNT FUCKING WORK */
+        /* PARALLEL REDUCTION OF RESIDUAL */
         residual_reduction_s<<<numBlocks, threadsPerBlock, threadsPerBlock.x * threadsPerBlock.y * sizeof(double)>>>(p, rhs, flag, residual_reductions);
         cudaDeviceSynchronize();
         residual_reduction_e<<<1, new_thread_num, new_thread_num * sizeof(double)>>>(residual_reductions, residual, numBlocks.x, numBlocks.y, p0);
@@ -623,43 +585,6 @@ __global__ void update_velocity(double *u, double *v, double *p, double *rhs, do
  */
 __global__ void set_timestep_interval(double *umax_g, double *vmax_g)
 {
-    // /* del_t satisfying CFL conditions */
-    // if (tau >= 1.0e-10)
-    // { /* else no time stepsize control */
-    //     double umax = 1.0e-10;
-    //     double vmax = 1.0e-10;
-
-    //     for (int i = 0; i < imax + 2; i++)
-    //     {
-    //         for (int j = 1; j < jmax + 2; j++)
-    //         {
-    //             umax = fmax(fabs(u[ind(i, j, u_size_y)]), umax);
-    //         }
-    //     }
-
-    //     for (int i = 1; i < imax + 2; i++)
-    //     {
-    //         for (int j = 0; j < jmax + 2; j++)
-    //         {
-    //             vmax = fmax(fabs(v[ind(i, j, v_size_y)]), vmax);
-    //         }
-    //     }
-
-    //     double deltu = delx / umax;
-    //     double deltv = dely / vmax;
-    //     double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
-
-    //     if (deltu < deltv)
-    //     {
-    //         del_t = fmin(deltu, deltRe);
-    //     }
-    //     else
-    //     {
-    //         del_t = fmin(deltv, deltRe);
-    //     }
-    //     del_t = tau * del_t; /* multiply by safety factor */
-    // }
-
     *umax_g = fmax(*umax_g, 1.0e-10);
     *vmax_g = fmax(*vmax_g, 1.0e-10);
 

@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     apply_boundary_conditions<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
     cudaDeviceSynchronize();
-    apply_boundary_conditions_2<<<1,1>>>(u, v, p, rhs, f, g, flag);
+    apply_boundary_conditions_2<<<1, 1>>>(u, v, p, rhs, f, g, flag);
     cudaDeviceSynchronize();
 
     setup_time = get_time() - setup_time;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
         apply_boundary_conditions_start = get_time();
         apply_boundary_conditions<<<numBlocks, threadsPerBlock>>>(u, v, p, rhs, f, g, flag);
         cudaDeviceSynchronize();
-        apply_boundary_conditions_2<<<1,1>>>(u, v, p, rhs, f, g, flag);
+        apply_boundary_conditions_2<<<1, 1>>>(u, v, p, rhs, f, g, flag);
         cudaDeviceSynchronize();
         apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 

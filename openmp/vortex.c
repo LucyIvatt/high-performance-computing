@@ -141,7 +141,7 @@ double poisson()
     double p0 = 0.0;
 
     /* Calculate sum of squares */
-    #pragma omp parallel for reduction(+:p0)
+    #pragma omp parallel for collapse(2) reduction(+:p0)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -165,7 +165,6 @@ double poisson()
 
     for (iter = 0; iter < itermax; iter++)
     {
-        
         for (int rb = 0; rb < 2; rb++)
         {
             #pragma omp parallel for collapse(2)

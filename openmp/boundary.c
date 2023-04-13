@@ -8,6 +8,7 @@
  */
 void apply_boundary_conditions()
 {
+    #pragma omp parallel
     for (int j = 0; j < jmax + 2; j++)
     {
         /* Fluid freely flows in from the west */
@@ -19,6 +20,7 @@ void apply_boundary_conditions()
         v[imax + 1][j] = v[imax][j];
     }
 
+    #pragma omp parallel
     for (int i = 0; i < imax + 2; i++)
     {
         /* The vertical velocity approaches 0 at the north and south
@@ -34,6 +36,8 @@ void apply_boundary_conditions()
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
+
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -95,6 +99,8 @@ void apply_boundary_conditions()
      * a continual flow of fluid into the simulation.
      */
     v[0][0] = 2 * vi - v[1][0];
+
+    #pragma omp parallel
     for (int j = 1; j < jmax + 1; j++)
     {
         u[0][j] = ui;
