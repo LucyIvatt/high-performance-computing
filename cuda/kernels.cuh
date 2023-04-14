@@ -2,13 +2,7 @@
 #define KERNELS
 
 /* CONSTANTS NEEDED ON BOTH GPU AND HOST DUE TO PARSED ARGUMENTS */
-extern __constant__ int u_size_x, u_size_y;
-extern __constant__ int v_size_x, v_size_y;
-extern __constant__ int p_size_x, p_size_y;
-extern __constant__ int flag_size_x, flag_size_y;
-extern __constant__ int g_size_x, g_size_y;
-extern __constant__ int f_size_x, f_size_y;
-extern __constant__ int rhs_size_x, rhs_size_y;
+extern __constant__ int arr_size_x, arr_size_y;
 
 extern __constant__ int imax;		  /* Number of cells horizontally */
 extern __constant__ int jmax;		  /* Number of cells vertically */

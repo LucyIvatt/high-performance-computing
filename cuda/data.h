@@ -27,13 +27,7 @@ extern double del_t_h; /* Duration of each timestep */
 extern double delx_h, dely_h;
 extern double residual_h;
 
-extern int u_size_x_h, u_size_y_h;
-extern int v_size_x_h, v_size_y_h;
-extern int p_size_x_h, p_size_y_h;
-extern int flag_size_x_h, flag_size_y_h;
-extern int g_size_x_h, g_size_y_h;
-extern int f_size_x_h, f_size_y_h;
-extern int rhs_size_x_h, rhs_size_y_h;
+extern int arr_size_x_h, arr_size_y_h;
 
 /* WILL BE PASSED IN AS PARAMETERS TO KERNELS FOR ACCESS */
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
@@ -54,7 +48,8 @@ extern double *umax_red, *vmax_red;
 extern double* residual;
 extern double* residual_reductions;
 
-#define ind(i, j, m) ((i) * (m) + (j))
+#define ind(i, j) ((i) * (arr_size_y) + (j))
+#define ind_h(i, j) ((i) * (arr_size_y_h) + (j))
 
 double *alloc_2d_array(int m, int n);
 char *alloc_2d_char_array(int m, int n);

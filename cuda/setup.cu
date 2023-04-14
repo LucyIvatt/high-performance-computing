@@ -60,56 +60,31 @@ void setup()
 void allocate_arrays()
 {
     /* Allocate arrays */
-    u_size_x_h = imax_h + 2;
-    u_size_y_h = jmax_h + 2;
-    u_host = alloc_2d_array(u_size_x_h, u_size_y_h);
-    u = copy_2d_array_to_gpu(u_host, u_size_x_h, u_size_y_h);
-    cudaMemcpyToSymbol(u_size_x, &u_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(u_size_y, &u_size_y_h, sizeof(int));
+    arr_size_x_h = imax_h + 2;
+    arr_size_y_h = jmax_h + 2;
+    cudaMemcpyToSymbol(arr_size_x, &arr_size_x_h, sizeof(int));
+    cudaMemcpyToSymbol(arr_size_y, &arr_size_y_h, sizeof(int));
+    
+    u_host = alloc_2d_array(arr_size_x_h, arr_size_y_h);
+    u = copy_2d_array_to_gpu(u_host, arr_size_x_h, arr_size_y_h);
+    
+    v_host = alloc_2d_array(arr_size_x_h, arr_size_y_h);
+    v = copy_2d_array_to_gpu(v_host, arr_size_x_h, arr_size_y_h);
 
-    v_size_x_h = imax_h + 2;
-    v_size_y_h = jmax_h + 2;
-    v_host = alloc_2d_array(v_size_x_h, v_size_y_h);
-    v = copy_2d_array_to_gpu(v_host, v_size_x_h, v_size_y_h);
-    cudaMemcpyToSymbol(v_size_x, &v_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(v_size_y, &v_size_y_h, sizeof(int));
+    f_host = alloc_2d_array(arr_size_x_h, arr_size_y_h);
+    f = copy_2d_array_to_gpu(f_host, arr_size_x_h, arr_size_y_h);
 
+    g_host = alloc_2d_array(arr_size_x_h, arr_size_y_h);
+    g = copy_2d_array_to_gpu(g_host, arr_size_x_h, arr_size_y_h);
 
-    f_size_x_h = imax_h + 2;
-    f_size_y_h = jmax_h + 2;
-    f_host = alloc_2d_array(f_size_x_h, f_size_y_h);
-    f = copy_2d_array_to_gpu(f_host, f_size_x_h, f_size_y_h);
-    cudaMemcpyToSymbol(f_size_x, &f_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(f_size_y, &f_size_y_h, sizeof(int));
+    p_host = alloc_2d_array(arr_size_x_h, arr_size_y_h);
+    p = copy_2d_array_to_gpu(p_host, arr_size_x_h, arr_size_y_h);
 
+    rhs_host = alloc_2d_array(arr_size_x_h, arr_size_y_h);
+    rhs = copy_2d_array_to_gpu(rhs_host, arr_size_x_h, arr_size_y_h);
 
-    g_size_x_h = imax_h + 2;
-    g_size_y_h = jmax_h + 2;
-    g_host = alloc_2d_array(g_size_x_h, g_size_y_h);
-    g = copy_2d_array_to_gpu(g_host, g_size_x_h, g_size_y_h);
-    cudaMemcpyToSymbol(g_size_x, &g_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(g_size_y, &g_size_y_h, sizeof(int));
-
-    p_size_x_h = imax_h + 2;
-    p_size_y_h = jmax_h + 2;
-    p_host = alloc_2d_array(p_size_x_h, p_size_y_h);
-    p = copy_2d_array_to_gpu(p_host, p_size_x_h, p_size_y_h);
-    cudaMemcpyToSymbol(p_size_x, &p_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(p_size_y, &p_size_y_h, sizeof(int));
-
-    rhs_size_x_h = imax_h + 2;
-    rhs_size_y_h = jmax_h + 2;
-    rhs_host = alloc_2d_array(rhs_size_x_h, rhs_size_y_h);
-    rhs = copy_2d_array_to_gpu(rhs_host, rhs_size_x_h, rhs_size_y_h);
-    cudaMemcpyToSymbol(rhs_size_x, &rhs_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(rhs_size_y, &rhs_size_y_h, sizeof(int));
-
-    flag_size_x_h = imax_h + 2;
-    flag_size_y_h = jmax_h + 2;
-    flag_host = alloc_2d_char_array(flag_size_x_h, flag_size_y_h);
-    flag = copy_2d_char_array_to_gpu(flag_host, flag_size_x_h, flag_size_y_h);
-    cudaMemcpyToSymbol(flag_size_x, &flag_size_x_h, sizeof(int));
-    cudaMemcpyToSymbol(flag_size_y, &flag_size_y_h, sizeof(int));
+    flag_host = alloc_2d_char_array(arr_size_x_h, arr_size_y_h);
+    flag = copy_2d_char_array_to_gpu(flag_host, arr_size_x_h, arr_size_y_h);
 
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks((imax_h + 2 + threadsPerBlock.x - 1) / threadsPerBlock.x,
@@ -136,13 +111,13 @@ void allocate_arrays()
 }
 
 void update_host_arrays() {
-    update_host_array(u_host, u, u_size_x_h, u_size_y_h);
-    update_host_array(v_host, v, v_size_x_h, v_size_y_h);
-    update_host_array(f_host, f, f_size_x_h, f_size_y_h);
-    update_host_array(g_host, g, g_size_x_h, g_size_y_h);
-    update_host_array(p_host, p, p_size_x_h, p_size_y_h);
-    update_host_array(rhs_host, rhs, rhs_size_x_h, rhs_size_y_h);
-    update_host_char_array(flag_host, flag, flag_size_x_h, flag_size_y_h);
+    update_host_array(u_host, u, arr_size_x_h, arr_size_y_h);
+    update_host_array(v_host, v, arr_size_x_h, arr_size_y_h);
+    update_host_array(f_host, f, arr_size_x_h, arr_size_y_h);
+    update_host_array(g_host, g, arr_size_x_h, arr_size_y_h);
+    update_host_array(p_host, p, arr_size_x_h, arr_size_y_h);
+    update_host_array(rhs_host, rhs, arr_size_x_h, arr_size_y_h);
+    update_host_char_array(flag_host, flag, arr_size_x_h, arr_size_y_h);
 }
 
 /**

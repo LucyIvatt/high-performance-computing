@@ -1,8 +1,6 @@
 #include "data.h"
 #include <stdio.h>
 
-#define ind(i, j, m) ((i) * (m) + (j))
-
 __constant__ double tau = 0.5;   /* Safety factor for timestep control */
 __constant__ double omega = 1.7; /* Relaxation parameter for SOR */
 __constant__ double y = 0.9;     /* Gamma, Upwind differencing factor in PDE discretisation */
@@ -12,13 +10,7 @@ __constant__ double ui = 1.0;   /* Initial X velocity */
 __constant__ double vi = 0.0;   /* Initial Y velocity */
 
 /* CONSTANTS NEEDED ON BOTH GPU AND HOST DUE TO PARSED ARGUMENTS */
-__constant__ int u_size_x, u_size_y;
-__constant__ int v_size_x, v_size_y;
-__constant__ int p_size_x, p_size_y;
-__constant__ int flag_size_x, flag_size_y;
-__constant__ int g_size_x, g_size_y;
-__constant__ int f_size_x, f_size_y;
-__constant__ int rhs_size_x, rhs_size_y;
+__constant__ int arr_size_x, arr_size_y;
 
 __constant__ double rdx2, rdy2, beta_2;
 
@@ -42,9 +34,9 @@ __global__ void setup_uvp_kernel(double *u, double *v, double *p)
 
     if (i < imax + 2 && j < jmax + 2)
     {
-        u[ind(i, j, u_size_y)] = ui;
-        v[ind(i, j, v_size_y)] = vi;
-        p[ind(i, j, p_size_y)] = 0.0;
+        u[ind(i, j)] = ui;
+        v[ind(i, j)] = vi;
+        p[ind(i, j)] = 0.0;
     }
 }
 
@@ -58,36 +50,36 @@ __global__ void setup_flag_kernel(char *flag)
     {
         double x = (i - 0.5) * delx - mx;
         double y = (j - 0.5) * dely - my;
-        flag[ind(i, j, flag_size_y)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
+        flag[ind(i, j)] = (x * x + y * y <= rad1 * rad1) ? C_B : C_F;
     }
 
     /* Mark the north & south boundary cells */
     if (i <= imax + 1)
     {
-        flag[ind(i, 0, flag_size_y)] = C_B;
-        flag[ind(i, jmax + 1, flag_size_y)] = C_B;
+        flag[ind(i, 0)] = C_B;
+        flag[ind(i, jmax + 1)] = C_B;
     }
     /* Mark the east and west boundary cells */
     if (j > 0 && j <= jmax)
     {
-        flag[ind(0, j, flag_size_y)] = C_B;
-        flag[ind(imax + 1, j, flag_size_y)] = C_B;
+        flag[ind(0, j)] = C_B;
+        flag[ind(imax + 1, j)] = C_B;
     }
 
     /* flags for boundary cells */
     if (i > 0 && i <= imax && j > 0 && j <= jmax)
     {
-        if (!(flag[ind(i, j, flag_size_y)] & C_F))
+        if (!(flag[ind(i, j)] & C_F))
         {
             fluid_cells--;
-            if (flag[ind(i - 1, j, flag_size_y)] & C_F)
-                flag[ind(i, j, flag_size_y)] |= B_W;
-            if (flag[ind(i + 1, j, flag_size_y)] & C_F)
-                flag[ind(i, j, flag_size_y)] |= B_E;
-            if (flag[ind(i, j - 1, flag_size_y)] & C_F)
-                flag[ind(i, j, flag_size_y)] |= B_S;
-            if (flag[ind(i, j + 1, flag_size_y)] & C_F)
-                flag[ind(i, j, flag_size_y)] |= B_N;
+            if (flag[ind(i - 1, j)] & C_F)
+                flag[ind(i, j)] |= B_W;
+            if (flag[ind(i + 1, j)] & C_F)
+                flag[ind(i, j)] |= B_E;
+            if (flag[ind(i, j - 1)] & C_F)
+                flag[ind(i, j)] |= B_S;
+            if (flag[ind(i, j + 1)] & C_F)
+                flag[ind(i, j)] |= B_N;
         }
     }
 }
@@ -98,12 +90,12 @@ __global__ void boundary_conditions_WE_kernel(double* u, double* v){
     if (j < jmax + 2)
     {
         /* Fluid freely flows in from the west */
-        u[ind(0, j, u_size_y)] = u[ind(1, j, u_size_y)];
-        v[ind(0, j, v_size_y)] = v[ind(1, j, v_size_y)];
+        u[ind(0, j)] = u[ind(1, j)];
+        v[ind(0, j)] = v[ind(1, j)];
 
         /* Fluid freely flows out to the east */
-        u[ind(imax, j, u_size_y)] = u[ind(imax - 1, j, u_size_y)];
-        v[ind(imax + 1, j, v_size_y)] = v[ind(imax, j, v_size_y)];
+        u[ind(imax, j)] = u[ind(imax - 1, j)];
+        v[ind(imax + 1, j)] = v[ind(imax, j)];
     }
 }
 
@@ -114,11 +106,11 @@ __global__ void boundary_conditions_NS_kernel(double* u, double* v){
     {
         /* The vertical velocity approaches 0 at the north and south
          * boundaries, but fluid flows freely in the horizontal direction */
-        v[ind(i, jmax, v_size_y)] = 0.0;
-        u[ind(i, jmax + 1, u_size_y)] = u[ind(i, jmax, u_size_y)];
+        v[ind(i, jmax)] = 0.0;
+        u[ind(i, jmax + 1)] = u[ind(i, jmax)];
 
-        v[ind(i, 0, v_size_y)] = 0.0;
-        u[ind(i, 0, u_size_y)] = u[ind(i, 1, u_size_y)];
+        v[ind(i, 0)] = 0.0;
+        u[ind(i, 0)] = u[ind(i, 1)];
     }
 }
 
@@ -140,53 +132,53 @@ __global__ void boundary_conditions_noslip_kernel(double *u, double *v, char *fl
 
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
-        if (flag[ind(i, j, flag_size_y)] & B_NSEW)
+        if (flag[ind(i, j)] & B_NSEW)
         {
-            switch (flag[ind(i, j, flag_size_y)])
+            switch (flag[ind(i, j)])
             {
             case B_N:
-                v[ind(i, j, v_size_y)] = 0.0;
-                u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
-                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
+                v[ind(i, j)] = 0.0;
+                u[ind(i, j)] = -u[ind(i, j + 1)];
+                u[ind(i - 1, j)] = -u[ind(i - 1, j + 1)];
                 break;
             case B_E:
-                u[ind(i, j, u_size_y)] = 0.0;
-                v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
-                v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
+                u[ind(i, j)] = 0.0;
+                v[ind(i, j)] = -v[ind(i + 1, j)];
+                v[ind(i, j - 1)] = -v[ind(i + 1, j - 1)];
                 break;
             case B_S:
-                v[ind(i, j - 1, v_size_y)] = 0.0;
-                u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
-                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
+                v[ind(i, j - 1)] = 0.0;
+                u[ind(i, j)] = -u[ind(i, j - 1)];
+                u[ind(i - 1, j)] = -u[ind(i - 1, j - 1)];
                 break;
             case B_W:
-                u[ind(i - 1, j, u_size_y)] = 0.0;
-                v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
-                v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
+                u[ind(i - 1, j)] = 0.0;
+                v[ind(i, j)] = -v[ind(i - 1, j)];
+                v[ind(i, j - 1)] = -v[ind(i - 1, j - 1)];
                 break;
             case B_NE:
-                v[ind(i, j, v_size_y)] = 0.0;
-                u[ind(i, j, u_size_y)] = 0.0;
-                v[ind(i, j - 1, v_size_y)] = -v[ind(i + 1, j - 1, v_size_y)];
-                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j + 1, u_size_y)];
+                v[ind(i, j)] = 0.0;
+                u[ind(i, j)] = 0.0;
+                v[ind(i, j - 1)] = -v[ind(i + 1, j - 1)];
+                u[ind(i - 1, j)] = -u[ind(i - 1, j + 1)];
                 break;
             case B_SE:
-                v[ind(i, j - 1, v_size_y)] = 0.0;
-                u[ind(i, j, u_size_y)] = 0.0;
-                v[ind(i, j, v_size_y)] = -v[ind(i + 1, j, v_size_y)];
-                u[ind(i - 1, j, u_size_y)] = -u[ind(i - 1, j - 1, u_size_y)];
+                v[ind(i, j - 1)] = 0.0;
+                u[ind(i, j)] = 0.0;
+                v[ind(i, j)] = -v[ind(i + 1, j)];
+                u[ind(i - 1, j)] = -u[ind(i - 1, j - 1)];
                 break;
             case B_SW:
-                v[ind(i, j - 1, v_size_y)] = 0.0;
-                u[ind(i - 1, j, u_size_y)] = 0.0;
-                v[ind(i, j, v_size_y)] = -v[ind(i - 1, j, v_size_y)];
-                u[ind(i, j, u_size_y)] = -u[ind(i, j - 1, u_size_y)];
+                v[ind(i, j - 1)] = 0.0;
+                u[ind(i - 1, j)] = 0.0;
+                v[ind(i, j)] = -v[ind(i - 1, j)];
+                u[ind(i, j)] = -u[ind(i, j - 1)];
                 break;
             case B_NW:
-                v[ind(i, j, v_size_y)] = 0.0;
-                u[ind(i - 1, j, u_size_y)] = 0.0;
-                v[ind(i, j - 1, v_size_y)] = -v[ind(i - 1, j - 1, v_size_y)];
-                u[ind(i, j, u_size_y)] = -u[ind(i, j + 1, u_size_y)];
+                v[ind(i, j)] = 0.0;
+                u[ind(i - 1, j)] = 0.0;
+                v[ind(i, j - 1)] = -v[ind(i - 1, j - 1)];
+                u[ind(i, j)] = -u[ind(i, j + 1)];
                 break;
             }
         }
@@ -202,12 +194,12 @@ __global__ void apply_boundary_conditions_west_edge_kernel(double *u, double *v)
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(i == 0 && j == 0)
-        v[ind(0, 0, v_size_y)] = 2 * vi - v[ind(1, 0, v_size_y)];
+        v[ind(0, 0)] = 2 * vi - v[ind(1, 0)];
 
     if (j > 0 && j < jmax+1)
     {
-        u[ind(0, j, u_size_y)] = ui;
-        v[ind(0, j, v_size_y)] = 2 * vi - v[ind(1, j, v_size_y)];
+        u[ind(0, j)] = ui;
+        v[ind(0, j)] = 2 * vi - v[ind(1, j)];
     }
 }
 
@@ -220,26 +212,26 @@ __global__ void tentative_velocity_update_f_kernel(double *u, double *v, double 
     {
 
         /* only if both adjacent cells are fluid cells */
-        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
+        if ((flag[ind(i, j)] & C_F) && (flag[ind(i + 1, j)] & C_F))
         {
-            double du2dx = ((u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) +
-                            y * fabs(u[ind(i, j, u_size_y)] + u[ind(i + 1, j, u_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i + 1, j, u_size_y)]) -
-                            (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) -
-                            y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i, j, u_size_y)]) * (u[ind(i - 1, j, u_size_y)] - u[ind(i, j, u_size_y)])) /
+            double du2dx = ((u[ind(i, j)] + u[ind(i + 1, j)]) * (u[ind(i, j)] + u[ind(i + 1, j)]) +
+                            y * fabs(u[ind(i, j)] + u[ind(i + 1, j)]) * (u[ind(i, j)] - u[ind(i + 1, j)]) -
+                            (u[ind(i - 1, j)] + u[ind(i, j)]) * (u[ind(i - 1, j)] + u[ind(i, j)]) -
+                            y * fabs(u[ind(i - 1, j)] + u[ind(i, j)]) * (u[ind(i - 1, j)] - u[ind(i, j)])) /
                            (4.0 * delx);
-            double duvdy = ((v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) +
-                            y * fabs(v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) * (u[ind(i, j, u_size_y)] - u[ind(i, j + 1, u_size_y)]) -
-                            (v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] + u[ind(i, j, u_size_y)]) -
-                            y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i + 1, j - 1, v_size_y)]) * (u[ind(i, j - 1, u_size_y)] - u[ind(i, j, u_size_y)])) /
+            double duvdy = ((v[ind(i, j)] + v[ind(i + 1, j)]) * (u[ind(i, j)] + u[ind(i, j + 1)]) +
+                            y * fabs(v[ind(i, j)] + v[ind(i + 1, j)]) * (u[ind(i, j)] - u[ind(i, j + 1)]) -
+                            (v[ind(i, j - 1)] + v[ind(i + 1, j - 1)]) * (u[ind(i, j - 1)] + u[ind(i, j)]) -
+                            y * fabs(v[ind(i, j - 1)] + v[ind(i + 1, j - 1)]) * (u[ind(i, j - 1)] - u[ind(i, j)])) /
                            (4.0 * dely);
-            double laplu = (u[ind(i + 1, j, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i - 1, j, u_size_y)]) / delx / delx +
-                           (u[ind(i, j + 1, u_size_y)] - 2.0 * u[ind(i, j, u_size_y)] + u[ind(i, j - 1, u_size_y)]) / dely / dely;
+            double laplu = (u[ind(i + 1, j)] - 2.0 * u[ind(i, j)] + u[ind(i - 1, j)]) / delx / delx +
+                           (u[ind(i, j + 1)] - 2.0 * u[ind(i, j)] + u[ind(i, j - 1)]) / dely / dely;
 
-            f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)] + del_t * (laplu / Re - du2dx - duvdy);
+            f[ind(i, j)] = u[ind(i, j)] + del_t * (laplu / Re - du2dx - duvdy);
         }
         else
         {
-            f[ind(i, j, f_size_y)] = u[ind(i, j, u_size_y)];
+            f[ind(i, j)] = u[ind(i, j)];
         }
     }
 }
@@ -252,26 +244,26 @@ __global__ void tentative_velocity_update_g_kernel(double *u, double *v, double 
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax)
     {
         /* only if both adjacent cells are fluid cells */
-        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
+        if ((flag[ind(i, j)] & C_F) && (flag[ind(i, j + 1)] & C_F))
         {
-            double duvdx = ((u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i + 1, j, v_size_y)]) +
-                            y * fabs(u[ind(i, j, u_size_y)] + u[ind(i, j + 1, u_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i + 1, j, v_size_y)]) -
-                            (u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] + v[ind(i, j, v_size_y)]) -
-                            y * fabs(u[ind(i - 1, j, u_size_y)] + u[ind(i - 1, j + 1, u_size_y)]) * (v[ind(i - 1, j, v_size_y)] - v[ind(i, j, v_size_y)])) /
+            double duvdx = ((u[ind(i, j)] + u[ind(i, j + 1)]) * (v[ind(i, j)] + v[ind(i + 1, j)]) +
+                            y * fabs(u[ind(i, j)] + u[ind(i, j + 1)]) * (v[ind(i, j)] - v[ind(i + 1, j)]) -
+                            (u[ind(i - 1, j)] + u[ind(i - 1, j + 1)]) * (v[ind(i - 1, j)] + v[ind(i, j)]) -
+                            y * fabs(u[ind(i - 1, j)] + u[ind(i - 1, j + 1)]) * (v[ind(i - 1, j)] - v[ind(i, j)])) /
                            (4.0 * delx);
-            double dv2dy = ((v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) +
-                            y * fabs(v[ind(i, j, v_size_y)] + v[ind(i, j + 1, v_size_y)]) * (v[ind(i, j, v_size_y)] - v[ind(i, j + 1, v_size_y)]) -
-                            (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) -
-                            y * fabs(v[ind(i, j - 1, v_size_y)] + v[ind(i, j, v_size_y)]) * (v[ind(i, j - 1, v_size_y)] - v[ind(i, j, v_size_y)])) /
+            double dv2dy = ((v[ind(i, j)] + v[ind(i, j + 1)]) * (v[ind(i, j)] + v[ind(i, j + 1)]) +
+                            y * fabs(v[ind(i, j)] + v[ind(i, j + 1)]) * (v[ind(i, j)] - v[ind(i, j + 1)]) -
+                            (v[ind(i, j - 1)] + v[ind(i, j)]) * (v[ind(i, j - 1)] + v[ind(i, j)]) -
+                            y * fabs(v[ind(i, j - 1)] + v[ind(i, j)]) * (v[ind(i, j - 1)] - v[ind(i, j)])) /
                            (4.0 * dely);
-            double laplv = (v[ind(i + 1, j, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i - 1, j, v_size_y)]) / delx / delx +
-                           (v[ind(i, j + 1, v_size_y)] - 2.0 * v[ind(i, j, v_size_y)] + v[ind(i, j - 1, v_size_y)]) / dely / dely;
+            double laplv = (v[ind(i + 1, j)] - 2.0 * v[ind(i, j)] + v[ind(i - 1, j)]) / delx / delx +
+                           (v[ind(i, j + 1)] - 2.0 * v[ind(i, j)] + v[ind(i, j - 1)]) / dely / dely;
 
-            g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)] + del_t * (laplv / Re - duvdx - dv2dy);
+            g[ind(i, j)] = v[ind(i, j)] + del_t * (laplv / Re - duvdx - dv2dy);
         }
         else
         {
-            g[ind(i, j, g_size_y)] = v[ind(i, j, v_size_y)];
+            g[ind(i, j)] = v[ind(i, j)];
         }
     }
 }
@@ -283,8 +275,8 @@ __global__ void tentative_velocity_f_boundaries_kernel(double *f, double *u)
     if (j > 0 && j < jmax + 1)
     {
         /* f & g at external boundaries */
-        f[ind(0, j, f_size_y)] = u[ind(0, j, u_size_y)];
-        f[ind(imax, j, f_size_y)] = u[ind(imax, j, u_size_y)];
+        f[ind(0, j)] = u[ind(0, j)];
+        f[ind(imax, j)] = u[ind(imax, j)];
     }
 }
 
@@ -294,8 +286,8 @@ __global__ void tentative_velocity_g_boundaries_kernel(double *g, double *v){
 
     if (i > 0 && i < imax + 1)
     {
-        g[ind(i, 0, g_size_y)] = v[ind(i, 0, v_size_y)];
-        g[ind(i, jmax, g_size_y)] = v[ind(i, jmax, v_size_y)];
+        g[ind(i, 0)] = v[ind(i, 0)];
+        g[ind(i, jmax)] = v[ind(i, jmax)];
     }
 }
 
@@ -311,11 +303,11 @@ __global__ void compute_rhs_kernel(double *u, double *v, double *p, double *rhs,
 
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
-        if (flag[ind(i, j, flag_size_y)] & C_F)
+        if (flag[ind(i, j)] & C_F)
         {
             /* only for fluid and non-surface cells */
-            rhs[ind(i, j, rhs_size_y)] = ((f[ind(i, j, f_size_y)] - f[ind(i - 1, j, f_size_y)]) / delx +
-                                          (g[ind(i, j, g_size_y)] - g[ind(i, j - 1, g_size_y)]) / dely) /
+            rhs[ind(i, j)] = ((f[ind(i, j)] - f[ind(i - 1, j)]) / delx +
+                                          (g[ind(i, j)] - g[ind(i, j - 1)]) / dely) /
                                          del_t;
         }
     }
@@ -325,20 +317,20 @@ __global__ void p0_reduction_blocks_kernel(double *p, char *flag, double *global
 {
     extern __shared__ double block_reductions[];
 
-    int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
-    int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    int array_ind = ind(i, j, jmax + 2);
-    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
+    int array_ind = ind(i, j);
 
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y; // Block Thread ID
     int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
-    int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+    int bid = blockIdx.x * gridDim.y + blockIdx.y; // Block id (within grid)
 
     // If the thread is valid -->
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1)
     {
         // copied the value from the data array into the blocks shared memory
-        if (flag[ind(i, j, jmax + 2)] & C_F)
+        if (flag[array_ind] & C_F)
         {
             block_reductions[b_tid] = p[array_ind] * p[array_ind];
         }
@@ -369,8 +361,7 @@ __global__ void p0_reduction_global_kernel(double *global_reductions, double *p0
 {
     extern __shared__ double final_reductions[];
 
-    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
-
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y;
     int t_per_b = blockDim.x * blockDim.y;
 
     if (b_tid < num_blocks_x * num_blocks_y)
@@ -414,24 +405,24 @@ __global__ void star_computation_kernel(double *u, double *v, double *p, double 
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && (i + j) % 2 == rb)
     {
 
-        if (flag[ind(i, j, flag_size_y)] == (C_F | B_NSEW))
+        if (flag[ind(i, j)] == (C_F | B_NSEW))
         {
             /* five point star for interior fluid cells */
-            p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
-                                     beta_2 * ((p[ind(i + 1, j, p_size_y)] + p[ind(i - 1, j, p_size_y)]) * rdx2 + (p[ind(i, j + 1, p_size_y)] + p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
+            p[ind(i, j)] = (1.0 - omega) * p[ind(i, j)] -
+                                     beta_2 * ((p[ind(i + 1, j)] + p[ind(i - 1, j)]) * rdx2 + (p[ind(i, j + 1)] + p[ind(i, j - 1)]) * rdy2 - rhs[ind(i, j)]);
         }
-        else if (flag[ind(i, j, flag_size_y)] & C_F)
+        else if (flag[ind(i, j)] & C_F)
         {
             /* modified star near boundary */
 
-            double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-            double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-            double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-            double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+            double eps_E = ((flag[ind(i + 1, j)] & C_F) ? 1.0 : 0.0);
+            double eps_W = ((flag[ind(i - 1, j)] & C_F) ? 1.0 : 0.0);
+            double eps_N = ((flag[ind(i, j + 1)] & C_F) ? 1.0 : 0.0);
+            double eps_S = ((flag[ind(i, j - 1)] & C_F) ? 1.0 : 0.0);
 
             double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-            p[ind(i, j, p_size_y)] = (1.0 - omega) * p[ind(i, j, p_size_y)] -
-                                     beta_mod * ((eps_E * p[ind(i + 1, j, p_size_y)] + eps_W * p[ind(i - 1, j, p_size_y)]) * rdx2 + (eps_N * p[ind(i, j + 1, p_size_y)] + eps_S * p[ind(i, j - 1, p_size_y)]) * rdy2 - rhs[ind(i, j, rhs_size_y)]);
+            p[ind(i, j)] = (1.0 - omega) * p[ind(i, j)] -
+                                     beta_mod * ((eps_E * p[ind(i + 1, j)] + eps_W * p[ind(i - 1, j)]) * rdx2 + (eps_N * p[ind(i, j + 1)] + eps_S * p[ind(i, j - 1)]) * rdy2 - rhs[ind(i, j)]);
         }
     }
 }
@@ -440,30 +431,29 @@ __global__ void residual_reduction_blocks_kernel(double *p, double *rhs, char *f
 {
     extern __shared__ double block_reductions[];
 
-    int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
-    int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
-
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y; // Block Thread ID
     int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
-    int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+    int bid = blockIdx.x * gridDim.y + blockIdx.y; // Block id (within grid)
 
     // If the thread is valid -->
-    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && (flag[ind(i, j, flag_size_y)] & C_F))
+    if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && (flag[ind(i, j)] & C_F))
     {
-        double eps_E = ((flag[ind(i + 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-        double eps_W = ((flag[ind(i - 1, j, flag_size_y)] & C_F) ? 1.0 : 0.0);
-        double eps_N = ((flag[ind(i, j + 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
-        double eps_S = ((flag[ind(i, j - 1, flag_size_y)] & C_F) ? 1.0 : 0.0);
+        double eps_E = ((flag[ind(i + 1, j)] & C_F) ? 1.0 : 0.0);
+        double eps_W = ((flag[ind(i - 1, j)] & C_F) ? 1.0 : 0.0);
+        double eps_N = ((flag[ind(i, j + 1)] & C_F) ? 1.0 : 0.0);
+        double eps_S = ((flag[ind(i, j - 1)] & C_F) ? 1.0 : 0.0);
 
         /* only fluid cells */
-        double add = (eps_E * (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                      eps_W * (p[ind(i, j, p_size_y)] - p[ind(i - 1, j, p_size_y)])) *
+        double add = (eps_E * (p[ind(i + 1, j)] - p[ind(i, j)]) -
+                      eps_W * (p[ind(i, j)] - p[ind(i - 1, j)])) *
                          rdx2 +
-                     (eps_N * (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) -
-                      eps_S * (p[ind(i, j, p_size_y)] - p[ind(i, j - 1, p_size_y)])) *
+                     (eps_N * (p[ind(i, j + 1)] - p[ind(i, j)]) -
+                      eps_S * (p[ind(i, j)] - p[ind(i, j - 1)])) *
                          rdy2 -
-                     rhs[ind(i, j, rhs_size_y)];
+                     rhs[ind(i, j)];
         block_reductions[b_tid] = add * add;
     }
     else
@@ -492,8 +482,7 @@ __global__ void residual_reduction_global_kernel(double *global_reductions, doub
 {
     extern __shared__ double final_reductions[];
 
-    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
-
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y;
     int t_per_b = blockDim.x * blockDim.y;
 
     if (b_tid < num_blocks_x * num_blocks_y)
@@ -531,9 +520,9 @@ __global__ void update_velocity_u_kernel(double *u, double *v, double *p, double
     if (i > 0 && i < imax - 2 && j > 0 && j < jmax - 1)
     {
         /* only if both adjacent cells are fluid cells */
-        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i + 1, j, flag_size_y)] & C_F))
+        if ((flag[ind(i, j)] & C_F) && (flag[ind(i + 1, j)] & C_F))
         {
-            u[ind(i, j, u_size_y)] = f[ind(i, j, f_size_y)] - (p[ind(i + 1, j, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / delx;
+            u[ind(i, j)] = f[ind(i, j)] - (p[ind(i + 1, j)] - p[ind(i, j)]) * del_t / delx;
         }
     }
 }
@@ -550,9 +539,9 @@ __global__ void update_velocity_v_kernel(double *u, double *v, double *p, double
     if (i > 0 && i < imax - 1 && j > 0 && j < jmax - 2)
     {
         /* only if both adjacent cells are fluid cells */
-        if ((flag[ind(i, j, flag_size_y)] & C_F) && (flag[ind(i, j + 1, flag_size_y)] & C_F))
+        if ((flag[ind(i, j)] & C_F) && (flag[ind(i, j + 1)] & C_F))
         {
-            v[ind(i, j, v_size_y)] = g[ind(i, j, g_size_y)] - (p[ind(i, j + 1, p_size_y)] - p[ind(i, j, p_size_y)]) * del_t / dely;
+            v[ind(i, j)] = g[ind(i, j)] - (p[ind(i, j + 1)] - p[ind(i, j)]) * del_t / dely;
         }
     }
 }
@@ -585,14 +574,14 @@ __global__ void abs_max_reduction_blocks_kernel(double *array, double *global_re
 {
     extern __shared__ double block_reductions[];
 
-    int i = ind(blockIdx.x, threadIdx.x, blockDim.x);
-    int j = ind(blockIdx.y, threadIdx.y, blockDim.y);
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    int array_ind = ind(i, j, jmax + 2);
-    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y); // Block Thread ID
+    int array_ind = ind(i, j);
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y; // Block Thread ID
 
     int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
-    int bid = ind(blockIdx.x, blockIdx.y, gridDim.y); // Block id (within grid)
+    int bid = blockIdx.x * gridDim.y + blockIdx.y; // Block id (within grid)
 
     // If the thread is valid -->
     if ((version == 0 && i < imax + 2 && j > 0 && j < jmax + 2) || (version == 1 && i > 1 && i < imax + 2 && j < jmax + 2))
@@ -625,8 +614,7 @@ __global__ void abs_max_reduction_global_kernel(double *global_reductions, doubl
 {
     extern __shared__ double final_reductions[];
 
-    int b_tid = ind(threadIdx.x, threadIdx.y, blockDim.y);
-
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y;
     int t_per_b = blockDim.x * blockDim.y;
 
     if (b_tid < num_blocks_x * num_blocks_y)

@@ -16,13 +16,7 @@ double eps = 0.001;
 double delx_h, dely_h;
 double residual_h;
 
-int u_size_x_h, u_size_y_h;
-int v_size_x_h, v_size_y_h;
-int p_size_x_h, p_size_y_h;
-int flag_size_x_h, flag_size_y_h;
-int g_size_x_h, g_size_y_h;
-int f_size_x_h, f_size_y_h;
-int rhs_size_x_h, rhs_size_y_h;
+int arr_size_x_h, arr_size_y_h;
 
 /* CONSTANTS ONLY NEEDED ON HOST*/
 double xlength = 4.0; /* Width of simulated domain */
