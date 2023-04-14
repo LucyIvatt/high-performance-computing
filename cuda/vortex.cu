@@ -177,23 +177,8 @@ int main(int argc, char *argv[])
 
     /* Timer Initialisations */
     double total_time = get_time();
-    double setup_time = get_time();
-
-    double tentative_velocity_time = 0;
-    double rhs_time = 0;
-    double poisson_time = 0;
-    double update_velocity_time = 0;
-    double apply_boundary_conditions_time = 0;
-
-    double tentative_velocity_start;
-    double rhs_start;
-    double poisson_start;
-    double update_velocity_start;
-    double apply_boundary_conditions_start;
 
     program_start(threadsPerBlock, numBlocks, argc, argv);
-
-    setup_time = get_time() - setup_time;
 
     /* Main loop */
     int iters = 0;
@@ -204,25 +189,15 @@ int main(int argc, char *argv[])
             timestep_interval(threadsPerBlock, numBlocks, reduction_threads);
         }
 
-        tentative_velocity_start = get_time();
         compute_tentative_velocity(threadsPerBlock, numBlocks);
-        tentative_velocity_time += get_time() - tentative_velocity_start;
 
-        rhs_start = get_time();
         compute_rhs(threadsPerBlock, numBlocks);
-        rhs_time += get_time() - rhs_start;
 
-        poisson_start = get_time();
         poisson(threadsPerBlock, numBlocks, reduction_threads);
-        poisson_time += get_time() - poisson_start;
 
-        update_velocity_start = get_time();
         update_velocity(threadsPerBlock, numBlocks);
-        update_velocity_time += get_time() - update_velocity_start;
 
-        apply_boundary_conditions_start = get_time();
         boundary_conditions(threadsPerBlock, numBlocks);
-        apply_boundary_conditions_time += get_time() - apply_boundary_conditions_start;
 
         if ((iters % output_freq == 0))
         {
@@ -245,13 +220,7 @@ int main(int argc, char *argv[])
     printf("Simulation complete.\n");
 
     fprintf(stderr, "Timing Summary\n");
-    fprintf(stderr, " Setup Time: %lf\n", setup_time);
-    fprintf(stderr, " Tenatative Velocity Time: %lf\n", tentative_velocity_time);
-    fprintf(stderr, " RHS Time: %lf\n", rhs_time);
-    fprintf(stderr, " Poisson Time: %lf\n", poisson_time);
-    fprintf(stderr, " Update Velocity Time: %lf\n", update_velocity_time);
-    fprintf(stderr, " Apply Boundary Conditions Time: %lf\n\n", apply_boundary_conditions_time);
-    fprintf(stderr, " Total Time: %lf\n", total_time);
+    fprintf(stderr, "Total Time: %lf\n", total_time);
 
     if (!no_output)
         write_result(iters, t);
