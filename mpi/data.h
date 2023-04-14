@@ -37,19 +37,15 @@ extern int fluid_cells;
 extern double delx, dely;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-extern int u_size_x, u_size_y;
+
+extern int arr_size_x, arr_size_y;
+
 extern double **u;
-extern int v_size_x, v_size_y;
 extern double **v;
-extern int p_size_x, p_size_y;
 extern double **p;
-extern int rhs_size_x, rhs_size_y;
 extern double **rhs;
-extern int f_size_x, f_size_y;
 extern double **f;
-extern int g_size_x, g_size_y;
 extern double **g;
-extern int flag_size_x, flag_size_y;
 extern char **flag;
 
 double **alloc_2d_array(int m, int n);

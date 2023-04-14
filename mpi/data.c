@@ -29,19 +29,14 @@ double delx, dely;
 int fluid_cells = 0;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
-int u_size_x, u_size_y;
+int arr_size_x, arr_size_y;
+
 double **u;
-int v_size_x, v_size_y;
 double **v;
-int p_size_x, p_size_y;
 double **p;
-int rhs_size_x, rhs_size_y;
 double **rhs;
-int f_size_x, f_size_y;
 double **f;
-int g_size_x, g_size_y;
 double **g;
-int flag_size_x, flag_size_y;
 char **flag;
 
 /**

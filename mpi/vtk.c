@@ -93,19 +93,19 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "%d\n", iters);
 
     // Write out the dimensions of the grid
-    fprintf(f, "DIMENSIONS %d %d 1\n", u_size_x, u_size_y);
+    fprintf(f, "DIMENSIONS %d %d 1\n", arr_size_x, arr_size_y);
     fprintf(f, "ORIGIN 0 0 0\n");
     fprintf(f, "SPACING 1 1 1\n");
 
     // Write out the u variable
-    int points = u_size_x * u_size_y;
+    int points = arr_size_x * arr_size_y;
     fprintf(f, "POINT_DATA %d\n", points);
     fprintf(f, "SCALARS u double 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < u_size_y; j++)
+    for (int j = 0; j < arr_size_y; j++)
     {
-        for (int i = 0; i < u_size_x; i++)
+        for (int i = 0; i < arr_size_x; i++)
             fprintf(f, "%.12e ", u[i][j]);
         fprintf(f, "\n");
     }
@@ -114,9 +114,9 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "\nSCALARS v double 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < v_size_y; j++)
+    for (int j = 0; j < arr_size_y; j++)
     {
-        for (int i = 0; i < v_size_x; i++)
+        for (int i = 0; i < arr_size_x; i++)
             fprintf(f, "%.12e ", v[i][j]);
         fprintf(f, "\n");
     }
@@ -125,9 +125,9 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "\nSCALARS p double 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < p_size_y; j++)
+    for (int j = 0; j < arr_size_y; j++)
     {
-        for (int i = 0; i < p_size_x; i++)
+        for (int i = 0; i < arr_size_x; i++)
             fprintf(f, "%.12e ", p[i][j]);
         fprintf(f, "\n");
     }
@@ -136,9 +136,9 @@ int write_vtk(char *filename, int iters, double t)
     fprintf(f, "\nSCALARS flag int 1\n");
     fprintf(f, "LOOKUP_TABLE default\n");
 
-    for (int j = 0; j < flag_size_y; j++)
+    for (int j = 0; j < arr_size_y; j++)
     {
-        for (int i = 0; i < flag_size_x; i++)
+        for (int i = 0; i < arr_size_x; i++)
             fprintf(f, "%d ", flag[i][j]);
         fprintf(f, "\n");
     }
