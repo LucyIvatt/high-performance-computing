@@ -14,6 +14,8 @@
 
 #define C_F 0x0010 /* This cell is a fluid cell */
 
+#define ROOT 0
+
 extern double xlength; /* Width of simulated domain */
 extern double ylength; /* Height of simulated domain */
 extern int imax;       /* Number of cells horizontally */

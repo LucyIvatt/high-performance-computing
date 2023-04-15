@@ -6,8 +6,9 @@
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
  */
-void apply_boundary_conditions()
+void apply_boundary_conditions(int rank)
 {
+    if (rank == ROOT) {
     for (int j = 0; j < jmax + 2; j++)
     {
         /* Fluid freely flows in from the west */
@@ -100,5 +101,6 @@ void apply_boundary_conditions()
     {
         u[0][j] = ui;
         v[0][j] = 2 * vi - v[1][j];
+    }
     }
 }

@@ -129,6 +129,4 @@ void problem_set_up()
             }
         }
     }
-
-    apply_boundary_conditions();
 }
