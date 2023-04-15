@@ -5,12 +5,15 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <mpi.h>
 
 #include "data.h"
 #include "vtk.h"
 #include "setup.h"
 #include "boundary.h"
 #include "args.h"
+
+#define ROOT 0
 
 /**
  * @brief Computation of tentative velocity field (f, g)
@@ -296,52 +299,65 @@ void set_timestep_interval()
  */
 int main(int argc, char *argv[])
 {
-    set_defaults();
-    parse_args(argc, argv);
-    setup();
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
 
-    if (verbose)
-        print_opts();
+    int process_num; // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &process_num);
 
-    allocate_arrays();
-    problem_set_up();
+    int rank; // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    double res;
-
-    /* Main loop */
-    int iters = 0;
-    double t;
-    for (t = 0.0; t < t_end; t += del_t, iters++)
+    if (rank == ROOT)
     {
-        if (!fixed_dt)
-            set_timestep_interval();
+        set_defaults();
+        parse_args(argc, argv);
+        setup();
 
-        compute_tentative_velocity();
+        if (verbose)
+            print_opts();
 
-        compute_rhs();
+        allocate_arrays();
+        problem_set_up();
 
-        res = poisson();
+        double res;
 
-        update_velocity();
-
-        apply_boundary_conditions();
-
-        if ((iters % output_freq == 0))
+        /* Main loop */
+        int iters = 0;
+        double t;
+        for (t = 0.0; t < t_end; t += del_t, iters++)
         {
-            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t, del_t, res);
+            if (!fixed_dt)
+                set_timestep_interval();
 
-            if ((!no_output) && (enable_checkpoints))
-                write_checkpoint(iters, t + del_t);
-        }
-    } /* End of main loop */
+            compute_tentative_velocity();
 
-    printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
-    printf("Simulation complete.\n");
+            compute_rhs();
 
-    if (!no_output)
-        write_result(iters, t);
+            res = poisson();
 
-    free_arrays();
+            update_velocity();
 
+            apply_boundary_conditions();
+
+            if ((iters % output_freq == 0))
+            {
+                printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t + del_t, del_t, res);
+
+                if ((!no_output) && (enable_checkpoints))
+                    write_checkpoint(iters, t + del_t);
+            }
+        } /* End of main loop */
+
+        printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
+        printf("Simulation complete.\n");
+
+        if (!no_output)
+            write_result(iters, t);
+
+        free_arrays();
+    }
+
+    MPI_Finalize();
     return 0;
 }
