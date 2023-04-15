@@ -36,6 +36,10 @@ build target *make_args="": (clean target)
 run target *args="": (build target)
     "{{ target }}/vortex" {{ args }}
 
+# Runs mpi
+run_mpi num_p *args="": (build "mpi")
+    mpirun -n {{ num_p }} ./mpi/vortex {{ args }}
+
 # Benchmark a target against ORIGINAL_TARGET with `hyperfine`, no file I/O
 hyperfine target *args="": (build target) (build ORIGINAL_TARGET)
     hyperfine --warmup 5 \
@@ -69,6 +73,14 @@ validate ltarget rtarget *args="": (build ltarget) (build rtarget)
     "{{ rtarget }}/vortex" {{ args }} \
         -o "{{ rtarget }}"
     python3 ./validation/validator.py "{{ ltarget }}.vtk" "{{ rtarget }}.vtk"
+
+# Run validator script on the output of mpi and another target
+validate_mpi target num_p *args="": (build target) (build "mpi")
+    "{{ target }}/vortex" {{ args }} \
+        -o "{{ target }}"
+    mpirun -n {{ num_p }} ./mpi/vortex {{ args }} \
+        -o "mpi"
+    python3 ./validation/validator.py "{{ target }}.vtk" "mpi.vtk"
 
 # Clean build and run artefacts locally
 clean *targets=TARGETS:
