@@ -8,7 +8,7 @@
 
 int ROOT = 0;
 
-int imax = 2;
+int imax = 5;
 int jmax = 6;
 
 char **flag;
@@ -35,14 +35,14 @@ double **alloc_2d_array(int m, int n)
 
 char **alloc_2d_char_array(int m, int n)
 {
-	char **x;
-	int i;
+    char **x;
+    int i;
 
-	x = (char **)malloc(m * sizeof(char *));
-	x[0] = (char *)calloc(m * n, sizeof(char));
-	for (i = 1; i < m; i++)
-		x[i] = &x[0][i * n];
-	return x;
+    x = (char **)malloc(m * sizeof(char *));
+    x[0] = (char *)calloc(m * n, sizeof(char));
+    for (i = 1; i < m; i++)
+        x[i] = &x[0][i * n];
+    return x;
 }
 
 int main(int argc, char **argv)
@@ -57,15 +57,15 @@ int main(int argc, char **argv)
     int rank; // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int arr_size_x = imax+2;
-    int arr_size_y = jmax+2;
+    int arr_size_x = imax + 2;
+    int arr_size_y = jmax + 2;
 
     int ROWS_PER_PROCESS = (arr_size_x - 2) / (process_num - 1);
     int ROW_REMAINDER = (arr_size_x - 2) % ROWS_PER_PROCESS;
 
     if (rank == ROOT)
     {
-        printf("Rows to compute %d\n", arr_size_y - 2);
+        printf("Rows to compute %d\n", arr_size_x - 2);
         printf("Number of processess including host %d\n", process_num);
         printf("Num row per process %d\n", ROWS_PER_PROCESS);
         printf("remainder %d\n", ROW_REMAINDER);
@@ -76,22 +76,22 @@ int main(int argc, char **argv)
         g = alloc_2d_array(arr_size_x, arr_size_y);
 
         for (int i = 0; i < imax + 2; i++)
+        {
+            for (int j = 0; j < jmax + 2; j++)
             {
-                for (int j = 0; j < jmax + 2; j++)
-                {
-                    flag[i][j] = 0x0010;
-                    f[i][j] = test_ind(i, j);
-                    g[i][j] = test_ind(i, j) + 10;
-                    rhs[i][j] = 0;
+                flag[i][j] = 0x0010;
+                f[i][j] = test_ind(i, j);
+                g[i][j] = test_ind(i, j) + 10;
+                rhs[i][j] = 0;
             }
         }
 
         // print flag
         printf("\nflag array values\n");
         for (int i = 0; i < imax + 2; i++)
+        {
+            for (int j = 0; j < jmax + 2; j++)
             {
-                for (int j = 0; j < jmax + 2; j++)
-                {
                 printf("%x ", flag[i][j]);
             }
             printf("\n");
@@ -99,9 +99,9 @@ int main(int argc, char **argv)
 
         printf("\nf array values\n");
         for (int i = 0; i < imax + 2; i++)
+        {
+            for (int j = 0; j < jmax + 2; j++)
             {
-                for (int j = 0; j < jmax + 2; j++)
-                {
                 printf("%.2f ", f[i][j]);
             }
             printf("\n");
@@ -109,9 +109,9 @@ int main(int argc, char **argv)
 
         printf("\ng array values\n");
         for (int i = 0; i < imax + 2; i++)
+        {
+            for (int j = 0; j < jmax + 2; j++)
             {
-                for (int j = 0; j < jmax + 2; j++)
-                {
                 printf("%.2f ", g[i][j]);
             }
             printf("\n");
@@ -142,11 +142,14 @@ int main(int argc, char **argv)
 
         if (ROW_REMAINDER > 0)
         {
-            for (int row = arr_size_y - 1 - ROW_REMAINDER; row < arr_size_y-1; row++)
+            int start_loc = 1 + (ROWS_PER_PROCESS * (process_num-1));
+            printf("remainder start %d\n", start_loc);
+
+            for (int i = start_loc; i < imax + 1; i++)
             {
-                for (int x = 1; x < arr_size_y - 1; x++)
+                for (int j = 1; j < jmax + 1; j++)
                 {
-                    rhs[row][x] = f[row][x] * g[row][x];
+                    rhs[i][j] = f[i][j] * g[i][j];
                 }
             }
         }
@@ -154,9 +157,9 @@ int main(int argc, char **argv)
         // print u
         printf("\nrhs array values\n");
         for (int i = 0; i < imax + 2; i++)
+        {
+            for (int j = 0; j < jmax + 2; j++)
             {
-                for (int j = 0; j < jmax + 2; j++)
-                {
                 printf("%.2f ", rhs[i][j]);
             }
             printf("\n");
@@ -165,14 +168,14 @@ int main(int argc, char **argv)
 
     else if (rank > 0)
     {
-        int recv_size = arr_size_y * (ROWS_PER_PROCESS + 2); 
+        int recv_size = arr_size_y * (ROWS_PER_PROCESS + 2);
 
         double f_buff[recv_size];
         double g_buff[recv_size];
         double rhs_buff_recv[recv_size];
 
         char flag_buff[recv_size];
-        
+
         MPI_Recv(f_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(g_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(rhs_buff_recv, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -186,14 +189,15 @@ int main(int argc, char **argv)
         {
             for (int j = 1; j < arr_size_y - 1; j++)
             {
-                if (flag_buff[test_ind(i, j)] & 0x0010) {
-                    rhs_buff_send[test_ind(i, j)] = f_buff[test_ind(i+1 ,j)] * g_buff[test_ind(i+1, j)];
+                if (flag_buff[test_ind(i, j)] & 0x0010)
+                {
+                    rhs_buff_send[test_ind(i, j)] = f_buff[test_ind(i + 1, j)] * g_buff[test_ind(i + 1, j)];
                 }
             }
 
             // Sets values at the end of the rows to what they already were
-            rhs_buff_send[test_ind(i, 0)] = rhs_buff_recv[test_ind(i+1, 0)];
-            rhs_buff_send[test_ind(i, arr_size_y-1)] = rhs_buff_recv[test_ind(i+1, arr_size_y-1)];
+            rhs_buff_send[test_ind(i, 0)] = rhs_buff_recv[test_ind(i + 1, 0)];
+            rhs_buff_send[test_ind(i, arr_size_y - 1)] = rhs_buff_recv[test_ind(i + 1, arr_size_y - 1)];
         }
 
         MPI_Send(&(rhs_buff_send[0]), send_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
