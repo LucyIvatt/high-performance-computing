@@ -22,6 +22,9 @@ void setup()
 {
     delx = xlength / imax;
     dely = ylength / jmax;
+
+    arr_size_x = imax + 2;
+    arr_size_y = jmax + 2;
 }
 
 /**
@@ -31,8 +34,6 @@ void setup()
 void allocate_arrays()
 {
     /* Allocate arrays */
-    arr_size_x = imax + 2;
-    arr_size_y = jmax + 2;
 
     u = alloc_2d_array(arr_size_x, arr_size_y);
     v = alloc_2d_array(arr_size_x, arr_size_y);

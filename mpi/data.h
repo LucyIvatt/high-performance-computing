@@ -34,6 +34,9 @@ extern double Re; /* Reynolds number */
 extern double ui; /* Initial X velocity */
 extern double vi; /* Initial Y velocity */
 
+#define ind(i, j) ((i) * (arr_size_y) + (j))
+#define ind_ret(i, j) ((i+1) * (arr_size_y) + (j))
+
 extern int fluid_cells;
 
 extern double delx, dely;

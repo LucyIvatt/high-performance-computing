@@ -96,23 +96,93 @@ void compute_tentative_velocity(int rank)
  * @brief Calculate the right hand side of the pressure equation
  *
  */
-void compute_rhs(int rank)
+void compute_rhs(int rank, int process_num)
 {
+    int ROWS_PER_PROCESS = (arr_size_x - 2) / (process_num - 1);
+    int ROW_REMAINDER = (arr_size_x - 2) % ROWS_PER_PROCESS;
+
     if (rank == ROOT)
     {
-        for (int i = 1; i < imax + 1; i++)
+        // Sends the rows to the processes
+        for (int r = 1; r < process_num; r++)
         {
-            for (int j = 1; j < jmax + 1; j++)
+            int start_loc = (ROWS_PER_PROCESS * (r - 1));
+            int send_size = arr_size_y * (ROWS_PER_PROCESS + 2);
+
+            MPI_Send(f[start_loc], send_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD);
+            MPI_Send(g[start_loc], send_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD);
+            MPI_Send(rhs[start_loc], send_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD);
+            MPI_Send(flag[start_loc], send_size, MPI_CHAR, r, 0, MPI_COMM_WORLD);
+        }
+
+        // Recives the new row and updates rhs
+        for (int r = 1; r < process_num; r++)
+        {
+            int start_loc = 1 + (ROWS_PER_PROCESS * (r - 1));
+            int recv_size = arr_size_y * ROWS_PER_PROCESS;
+            MPI_Recv(rhs[start_loc], recv_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+
+        // If any rows left that need computing, computed by host
+        if (ROW_REMAINDER > 0)
+        {
+            int start_loc = 1 + (ROWS_PER_PROCESS * (process_num - 1));
+
+            for (int i = start_loc; i < imax + 1; i++)
             {
-                if (flag[i][j] & C_F)
+                for (int j = 1; j < jmax + 1; j++)
                 {
-                    /* only for fluid and non-surface cells */
-                    rhs[i][j] = ((f[i][j] - f[i - 1][j]) / delx +
-                                 (g[i][j] - g[i][j - 1]) / dely) /
-                                del_t;
+
+                    if (flag[i][j] & C_F)
+                    {
+                        /* only for fluid and non-surface cells */
+                        rhs[i][j] = ((f[i][j] - f[i - 1][j]) / delx +
+                                     (g[i][j] - g[i][j - 1]) / dely) /
+                                    del_t;
+                    }
                 }
             }
         }
+    }
+
+    else if (rank > 0)
+    {
+        int recv_size = arr_size_y * (ROWS_PER_PROCESS + 2);
+
+        double f_buff[recv_size];
+        double g_buff[recv_size];
+        double rhs_buff_recv[recv_size];
+
+        char flag_buff[recv_size];
+
+        MPI_Recv(f_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(g_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(rhs_buff_recv, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(flag_buff, recv_size, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        int send_size = arr_size_y * ROWS_PER_PROCESS;
+        double rhs_buff_send[arr_size_y * ROWS_PER_PROCESS];
+
+        // Calculates the square of the numbers
+        for (int i = 0; i < ROWS_PER_PROCESS; i++)
+        {
+            for (int j = 1; j < arr_size_y - 1; j++)
+            {
+                if (flag_buff[ind_ret(i, j)] & C_F)
+                {
+                    /* only for fluid and non-surface cells */
+                    rhs_buff_send[ind(i, j)] = ((f_buff[ind_ret(i, j)] - f_buff[ind_ret(i-1, j)]) / delx +
+                                 (g_buff[ind_ret(i, j)] - g_buff[ind_ret(i, j-1)]) / dely) /
+                                del_t;
+                }
+            }
+
+            // Sets values at the end of the rows to what they already were
+            rhs_buff_send[ind(i, 0)] = rhs_buff_recv[ind_ret(i, 0)];
+            rhs_buff_send[ind(i, arr_size_y - 1)] = rhs_buff_recv[ind_ret(i, arr_size_y - 1)];
+        }
+
+        MPI_Send(&(rhs_buff_send[0]), send_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
 }
 
@@ -321,12 +391,12 @@ int main(int argc, char *argv[])
     int rank; // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    set_defaults();
+    parse_args(argc, argv);
+    setup();
+
     if (rank == ROOT)
     {
-        set_defaults();
-        parse_args(argc, argv);
-        setup();
-
         if (verbose)
             print_opts();
 
@@ -347,7 +417,7 @@ int main(int argc, char *argv[])
             set_timestep_interval(rank);
 
         compute_tentative_velocity(rank);
-        compute_rhs(rank);
+        compute_rhs(rank, process_num);
         res = poisson(rank);
         update_velocity(rank);
         apply_boundary_conditions(rank);
