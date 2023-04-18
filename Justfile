@@ -193,12 +193,14 @@ viking_run_cuda folder *args="":
         viking_run "cuda" "{{ folder }}" {{ args }}
 
 # Helper for viking_run for mpi
-viking_run_mpi folder tasks="9" *args="":
+viking_run_mpi folder tasks="2" nodes="1" *args="":
     just \
-        VORTEX_CMD="mpirun -n {{ tasks }}" \
+        VORTEX_CMD="mpiexec -n {{ tasks }} ./vortex" \
+        VIKING_NUM_TASKS={{ tasks }} \
+        VIKING_SLURM_ARGS='#SBATCH --nodes={{ nodes }}' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=mpi/OpenMPI/4.1.1-GCC-11.2.0 \
-        viking_run "mpi" "{{ folder }}" {{ tasks }} "1" {{ args }}
+        viking_run "mpi" "{{ folder }}" {{ args }}
 
 # View the viking job queue
 viking_queue: (viking_ssh "squeue -u " + YORK_USER)
