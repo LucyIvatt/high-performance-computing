@@ -113,6 +113,7 @@ void compute_rhs(int rank, int process_num)
             MPI_Send(g[start_loc], send_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD);
             MPI_Send(rhs[start_loc], send_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD);
             MPI_Send(flag[start_loc], send_size, MPI_CHAR, r, 0, MPI_COMM_WORLD);
+            MPI_Send(&del_t, 1, MPI_DOUBLE, r, 0, MPI_COMM_WORLD);
         }
 
         // Recives the new row and updates rhs
@@ -159,6 +160,7 @@ void compute_rhs(int rank, int process_num)
         MPI_Recv(g_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(rhs_buff_recv, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(flag_buff, recv_size, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&del_t, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         int send_size = arr_size_y * ROWS_PER_PROCESS;
         double rhs_buff_send[arr_size_y * ROWS_PER_PROCESS];
@@ -176,14 +178,14 @@ void compute_rhs(int rank, int process_num)
                                 del_t;
                 }
             }
-
             // Sets values at the end of the rows to what they already were
             rhs_buff_send[ind(i, 0)] = rhs_buff_recv[ind_ret(i, 0)];
             rhs_buff_send[ind(i, arr_size_y - 1)] = rhs_buff_recv[ind_ret(i, arr_size_y - 1)];
         }
-
         MPI_Send(&(rhs_buff_send[0]), send_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 /**
