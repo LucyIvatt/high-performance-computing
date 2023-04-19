@@ -25,6 +25,10 @@ void setup()
 
     arr_size_x = imax + 2;
     arr_size_y = jmax + 2;
+
+    rdx2 = 1.0 / (delx * delx);
+    rdy2 = 1.0 / (dely * dely);
+    beta_2 = -omega / (2.0 * (rdx2 + rdy2));
 }
 
 /**

@@ -15,6 +15,8 @@
 #define C_F 0x0010 /* This cell is a fluid cell */
 
 #define ROOT 0
+#define ind(i, j) ((i) * (arr_size_y) + (j))
+#define ind_ret(i, j) (((i)+1) * (arr_size_y) + (j))
 
 extern double xlength; /* Width of simulated domain */
 extern double ylength; /* Height of simulated domain */
@@ -34,8 +36,9 @@ extern double Re; /* Reynolds number */
 extern double ui; /* Initial X velocity */
 extern double vi; /* Initial Y velocity */
 
-#define ind(i, j) ((i) * (arr_size_y) + (j))
-#define ind_ret(i, j) (((i)+1) * (arr_size_y) + (j))
+extern double rdx2;
+extern double rdy2;
+extern double beta_2;
 
 extern int fluid_cells;
 
