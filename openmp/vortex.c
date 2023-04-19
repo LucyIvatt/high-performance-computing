@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, " Poisson Time: %lf\n", poisson_time);
     fprintf(stderr, " Update Velocity Time: %lf\n", update_velocity_time);
     fprintf(stderr, " Apply Boundary Conditions Time: %lf\n\n", apply_boundary_conditions_time);
-    fprintf(stderr, " Total Time: %lf\n", total_time);
+    fprintf(stderr, "Total Time: %lf\n", total_time);
 
     if (!no_output)
         write_result(iters, t);
