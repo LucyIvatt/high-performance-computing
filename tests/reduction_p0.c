@@ -2,32 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// double rdx2 = 1.0 / (delx * delx);
-//         double rdy2 = 1.0 / (dely * dely);
-//         double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
-
-//         double p0 = 0.0;
-//         /* Calculate sum of squares */
-//         for (int i = 1; i < imax + 1; i++)
-//         {
-//             for (int j = 1; j < jmax + 1; j++)
-//             {
-//                 if (flag[i][j] & C_F)
-//                 {
-//                     p0 += p[i][j] * p[i][j];
-//                 }
-//             }
-//         }
-
-//         p0 = sqrt(p0 / fluid_cells);
-//         if (p0 < 0.0001)
-//         {
-//             p0 = 1.0;
-//         }
-
 #define ind(i, row, row_size) ((i) + ((row) * (row_size)))
-
 #define test_ind(i, j) ((i) * (arr_size_y) + (j))
+#define C_F 0x0010
 
 int ROOT = 0;
 
@@ -125,7 +102,6 @@ int main(int argc, char **argv)
             }
             printf("\n");
         }
- 
     }
 
     int* send_counts = malloc(process_num * sizeof(int));
@@ -138,32 +114,39 @@ int main(int argc, char **argv)
         displ[i] = ROW_REMAINDER + ((i-1) * ROWS_PER_PROCESS * arr_size_y);
     }
 
-    if (rank == ROOT) {
-        printf("Send counts\n");
-        for (int i = 0; i < process_num; i++) {
-            printf("%d ", send_counts[i]);
-        }
-
-        printf("Displacement\n");
-        for (int i = 0; i < process_num; i++) {
-            printf("%d ", displ[i]);
-        }
-    }
-
     // Storage for p0 on each rank
-    double *p0_local = malloc(sizeof(double) * send_counts[rank]);
+    double *p_rows = malloc(sizeof(double) * send_counts[rank]);
+    char *flag_rows = malloc(sizeof(double) * send_counts[rank]);
 
+    double local_p0 = 0;
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    MPI_Scatterv(p[0], send_counts, displ, MPI_DOUBLE, p0_local, p0_local[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(&(p[0]), send_counts, displ, MPI_DOUBLE, p_rows, send_counts[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(&(flag[0]), send_counts, displ, MPI_CHAR, flag_rows, send_counts[rank], MPI_CHAR, 0, MPI_COMM_WORLD);
 
-    if (rank == ROOT) {
-        printf("Hello I am rank %d and I have recieved the following data\n", rank);
-        for(int i = 0; i < send_counts[rank]; i++) {
-            printf("%f ", p0_local[i]);
+    int num_rows = (rank == 0) ? ROW_REMAINDER : ROWS_PER_PROCESS;
+
+    for (int i = 0; i < num_rows; i++) {
+        for (int j = 1; j < arr_size_y-1; j++){
+            if (flag_rows[test_ind(i, j)] & C_F)
+                {
+                    local_p0 += p_rows[test_ind(i, j)] * p_rows[test_ind(i, j)];
+                }
         }
     }
+
+    printf("p0 on rank %d = %f\n", rank, local_p0);
+
+    // Reduce all of the local sums into the global sum
+    double p0;
+    MPI_Reduce(&local_p0, &p0, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    // Print the result
+    if (rank == 0) {
+    printf("\nglobal p0 = %f", p0);
+    }
+
     MPI_Finalize();
     return 0;
 }
