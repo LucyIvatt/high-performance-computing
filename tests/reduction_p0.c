@@ -9,7 +9,7 @@
 int ROOT = 0;
 
 int imax = 5;
-int jmax = 10;
+int jmax = 2;
 
 char **flag;
 double **p;
@@ -132,19 +132,36 @@ int main(int argc, char **argv)
         }
     }
 
-    double *local_A = (double *)malloc(counts[rank] * sizeof(double));
+    double *p_rows = (double *)malloc(counts[rank] * sizeof(double));
+    char *flag_rows = (char *)malloc(counts[rank] * sizeof(char));
+
+    double local_p0 = 0;
 
     // Scatter the data to each process
-    MPI_Scatterv(p[0], counts, displs, MPI_DOUBLE, local_A, counts[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(p[0], counts, displs, MPI_DOUBLE, p_rows, counts[rank], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(flag[0], counts, displs, MPI_CHAR, flag_rows, counts[rank], MPI_CHAR, 0, MPI_COMM_WORLD);
 
-    // Each process now has a local buffer with only a subset of the rows
-    if (rank == 2)
-    {
-        printf("Process 0 received:\n");
-        for (int i = 0; i < counts[2]; i++)
-        {
-            printf("%.0f ", local_A[i]);
+    int num_rows = (rank == 0) ? ROW_REMAINDER : ROWS_PER_PROCESS;
+
+    for (int i = 0; i < num_rows; i++) {
+        for (int j = 1; j < arr_size_y-1; j++){
+            if (flag_rows[test_ind(i, j)] & C_F)
+                {
+                    local_p0 += p_rows[test_ind(i, j)] * p_rows[test_ind(i, j)];
+                }
         }
+    }
+
+    printf("p0 on rank %d = %f\n", rank, local_p0);
+
+
+    double p0;
+    MPI_Reduce(&local_p0, &p0, 1, MPI_DOUBLE, MPI_SUM, 0,
+           MPI_COMM_WORLD);
+    
+    // Print the result
+    if (rank == 0) {
+    printf("\nglobal p0 = %f", p0);
     }
 
     MPI_Finalize();
