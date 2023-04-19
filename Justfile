@@ -18,7 +18,7 @@ VIKING_SLURM_ARGS := ""
 VIKING_JOB_TIME := "00:10:00"
 VIKING_MEMORY := "4gb"
 VIKING_NUM_TASKS := "1"
-VIKING_CPUS_PT := "20"
+VIKING_CPUS_PT := "1"
 
 LAB_MACHINE_ADDR := env_var("LAB_MACHINE_ADDR")
 LAB_DEST := "hipc_source"
@@ -150,7 +150,7 @@ viking_ssh cmd="":
 alias vs := viking_ssh
 
 # Run a target as a batch job on viking
-viking_run target folder=`mktemp -du /tmp/hipcassessXXX` *args="": (clean target)
+viking_run target folder=`mktemp -du /tmp/hipcassessXXX` dest_folder="manual_tests" *args="": (clean target)
     mkdir -p "{{ folder }}"
     cd "{{ folder }}" && rm -rf "*" ".*"
     cp -rv "{{ target }}" "{{ folder }}"
@@ -165,42 +165,42 @@ viking_run target folder=`mktemp -du /tmp/hipcassessXXX` *args="": (clean target
         -D 'mem={{ VIKING_MEMORY }}' \
         -D build_cmd='(cd {{ target }} && make)' \
         -D run_cmd='(cd {{ target }} && {{ VORTEX_CMD }} {{ args }})'
-    # cat "{{ folder }}/run_{{ target }}.job"
+    cat "{{ folder }}/run_{{ target }}.job"
     chmod +x "{{ folder }}/run_{{ target }}.job"
-    just viking_rsync_to "{{ folder }}" "scratch"
+    just viking_rsync_to "{{ folder }}" "scratch/{{ dest_folder }}"
     just viking_ssh \
-        'cd ~/scratch/$(basename {{ folder }}) && \
+        'cd ~/scratch/{{ dest_folder }}/$(basename {{ folder }}) && \
         sbatch ./run_{{ target }}.job'
     @printf "\n==================================================\nViking job run in directory $(basename {{ folder }})\n\n"
     rm "{{ folder }}" -r
 
 # Helper for viking_run for openmp
-viking_run_openmp folder cpus="20" *args="":
+viking_run_openmp folder cpus="20" dest_folder="manual_tests" *args="":
     just \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_CPUS_PT={{ cpus }} \
         VORTEX_CMD="OMP_NUM_THREADS={{ cpus }} {{ VORTEX_CMD }}" \
-        viking_run "openmp" "{{ folder }}" {{ args }}
+        viking_run "openmp" "{{ folder }}" {{dest_folder}} {{ args }}
 
 # Helper for viking_run for cuda
-viking_run_cuda folder *args="":
+viking_run_cuda folder dest_folder="manual_tests" *args="":
     just \
         VIKING_PARTITION=gpu \
         VIKING_SLURM_ARGS='#SBATCH --gres=gpu:1' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=system/CUDA/11.1.1-GCC-10.2.0 \
         VIKING_CPUS_PT=1 \
-        viking_run "cuda" "{{ folder }}" {{ args }}
+        viking_run "cuda" "{{ folder }}" {{dest_folder}} {{ args }}
 
 # Helper for viking_run for mpi
-viking_run_mpi folder tasks="2" nodes="1" *args="":
+viking_run_mpi folder tasks="2" nodes="1" dest_folder="manual_tests" *args="":
     just \
         VORTEX_CMD="mpiexec -n {{ tasks }} ./vortex" \
         VIKING_NUM_TASKS={{ tasks }} \
         VIKING_SLURM_ARGS='#SBATCH --nodes={{ nodes }}' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=mpi/OpenMPI/4.1.1-GCC-11.2.0 \
-        viking_run "mpi" "{{ folder }}" {{ args }}
+        viking_run "mpi" "{{ folder }}" {{dest_folder}} {{ args }}
 
 # View the viking job queue
 viking_queue: (viking_ssh "squeue -u " + YORK_USER)
