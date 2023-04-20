@@ -8,6 +8,6 @@
 **scorep*
 **.input.*
 *_flame.svg
-*.csv
 tool
 .vscode
+*.out

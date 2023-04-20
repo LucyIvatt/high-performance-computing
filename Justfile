@@ -87,7 +87,7 @@ clean *targets=TARGETS:
     -for target in {{ targets }}; \
         do (cd $target && make clean); \
     done
-    find -iname "*.csv" -exec rm -v {} \;
+    find -iname "*.csv" -and -not -ipath "*/validation/*" -exec rm -v {} \;
     find -iname "*.vtk" -and -not -ipath "*/validation/*" -exec rm -v {} \;
     find -iname "*perf.data*" -exec rm -v {} \;
     find -iname "*.svg" -exec rm -v {} \;
