@@ -206,49 +206,6 @@ viking_run_mpi folder tasks="2" nodes="1" dest_folder="manual_tests" *args="":
 viking_queue: (viking_ssh "squeue -u " + YORK_USER)
 alias vq := viking_queue
 
-# Run all benches
-viking_bench_run jump="500" max="5000" targets=TARGETS omp_cpus="20" mpi_tasks="9" mpi_dims="-X 3 -Y 3":
-    #!/bin/env hush
-    let targets = std.split("{{ targets }}", " ")
-    for size in std.range({{ jump }}, {{ max }}, {{ jump }}) do
-        if std.contains(targets, "original") then
-            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run original /tmp/hipc_original_${size} -x $size -y $size -n }
-        end
-        if std.contains(targets, "openmp") then
-            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run_openmp /tmp/hipc_openmp_${size} {{ omp_cpus }}
-                        -x $size -y $size -n }
-        end
-        if std.contains(targets, "cuda") then
-            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run_cuda /tmp/hipc_cuda_${size} -x $size -y $size -n }
-        end
-        if std.contains(targets, "mpi") then
-            { just VIKING_JOB_TIME={{ VIKING_JOB_TIME }}
-                    viking_run_mpi /tmp/hipc_mpi_${size} {{ mpi_tasks }} {{ mpi_dims }}
-                        -x $size -y $size -n }
-        end
-    end
-
-# Retrieve slurm logs from `viking_bench_run`
-viking_bench_retrieve jump="500" max="5000" targets=TARGETS:
-    #!/bin/env hush
-    let cwd = std.cwd()
-    for size in std.range({{ jump }}, {{ max }}, {{ jump }}) do
-        for target in std.iter(std.split("{{ targets }}", " ")) do
-            {
-                mkdir -pv "{{ VIKING_BENCH_RESULTS_DIR }}/${target}_${size}";
-                just viking_rsync_from "scratch/hipc_${target}_${size}/slurm-*"
-                    "{{ VIKING_BENCH_RESULTS_DIR }}/${target}_${size}";
-                cd "{{ VIKING_BENCH_RESULTS_DIR }}/${target}_${size}";
-                nomino -pw -r 'slurm-[0-9]+\\.out' 'slurm.out';
-                cd $cwd;
-            }
-        end
-    end
-    std.print("========================================\nResults saved to {{ VIKING_BENCH_RESULTS_DIR }}\n")
-
 # Cancel all viking jobs
 viking_cancel: && (viking_ssh "scancel -u " + YORK_USER)
     #!/bin/bash
@@ -264,5 +221,6 @@ viking_cancel: && (viking_ssh "scancel -u " + YORK_USER)
     echo
     echo "Cancelling all viking jobs for {{ YORK_USER }}..."
 
-# Cancel viking jobs and clean up
-viking_clean: (viking_cancel) (viking_ssh "rm -rfv ~/scratch/hipc*")
+# Copy benchmark/experiment slurm logs from Viking
+viking_slurm_copy folder:
+    sshpass -e ssh {{ YORK_USER }}@viking.york.ac.uk 'find ~/scratch/{{ folder }}/ -iname "slurm-*" -type f' | python3 validation/benchmarks.py slurm_copy {{ folder }}
