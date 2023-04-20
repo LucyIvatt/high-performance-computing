@@ -27,7 +27,7 @@ elif sys.argv[1] == "openmp" and sys.argv[2] == "cpus":
         exit()
 
     prefix = "just viking_run_openmp "
-    for cpus in range(5, 45, 5):
+    for cpus in range(2, 42, 2):
         folder_name = str(f"{cpus}_cpus_omp ")
         cmd = prefix + folder_name + str(cpus) + " openmp_cpu_experiment"
         
@@ -86,12 +86,13 @@ elif sys.argv[1] == "mpi":
 
 elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "openmp_benchmarks", "openmp_cpu_experiment", "cuda_checkpoint_experiment", "cuda_benchmarks"]:
     path = "/mnt/c/Users/lucea/Documents/Github Repos/HIPC-Assessment/validation/" + sys.argv[2]
+    csv_path = "/mnt/c/Users/lucea/Documents/Github Repos/HIPC-Assessment/validation/"+ sys.argv[2] + "_data.csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
     
-    if not os.path.isfile(path + "/" + sys.argv[2] + "_data.csv"):
-        with open(path + "/" + sys.argv[2] + "_data.csv", "w") as f:
+    if not os.path.isfile(csv_path):
+        with open(csv_path, "x") as f:
             for line in sys.stdin:
                 line = line.rstrip("\n")
                 split_path = line.split("/")
@@ -101,10 +102,18 @@ elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "ope
                     for log_line in slurm_log:
                         match = re.search(r'Total Time:\s+(\d+\.\d+)', log_line)
                         if match:
-                            f.write(f"{split_path[-2][:-4]}, {match.group(1)}\n")
+                            ver = split_path[-2].split("_")
+
+                            if sys.argv[2] == "openmp_cpu_experiment":
+                                f.write(f"cpus={ver[0]}, {match.group(1)}\n")
+                            else:
+                                f.write(f"x={ver[1]} y={ver[3]}, {match.group(1)}\n")
                             break
                     else:
-                        f.write(f"{split_path[-2][:-5]}, {600}\n")
+                        if sys.argv[2] == "openmp_cpu_experiment":
+                                f.write(f"cpus={ver[0]}, {600}\n")
+                        else:
+                            f.write(f"x={ver[1]} y={ver[3]}, {600}\n")
 
     else:
         print("data.csv already exists, clear directory and retry.")
