@@ -58,3 +58,4 @@ double p0_reduction(int rank, int process_num) {
 
     return p0;
 }
+

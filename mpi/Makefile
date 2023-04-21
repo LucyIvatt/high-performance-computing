@@ -4,7 +4,7 @@ LIBFLAGS=-lm
 
 OBJDIR = obj
 
-_OBJ = args.o data.o setup.o vtk.o boundary.o vortex.o
+_OBJ = args.o data.o setup.o vtk.o boundary.o vortex.o mpi_f.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 .PHONY: directories
