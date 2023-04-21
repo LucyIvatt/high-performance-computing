@@ -6,12 +6,21 @@
 #include <fcntl.h>
 #include <math.h>
 #include <mpi.h>
+#include <time.h>
 
 #include "boundary.h"
 #include "data.h"
 #include "vtk.h"
 #include "setup.h"
 #include "args.h"
+
+struct timespec timer;
+
+double get_time()
+{
+    clock_gettime(CLOCK_MONOTONIC, &timer);
+    return (double)(timer.tv_sec + timer.tv_nsec / 1000000000.0);
+}
 
 /**
  * @brief Computation of tentative velocity field (f, g)
@@ -249,7 +258,6 @@ double poisson(int rank, int process_num)
     }
 
 
-
     /* Red/Black SOR-iteration */
     int iter;
     double res = 0.0;
@@ -412,6 +420,9 @@ void set_timestep_interval(int rank)
  */
 int main(int argc, char *argv[])
 {
+    /* Timer Initialisations */
+    double total_time = get_time();
+
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
 
@@ -470,6 +481,8 @@ int main(int argc, char *argv[])
     {
         printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
         printf("Simulation complete.\n");
+        total_time = get_time() - total_time;
+        fprintf(stderr, "Total Time: %lf\n", total_time);
 
         if (!no_output)
             write_result(iters, t);

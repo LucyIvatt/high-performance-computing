@@ -153,12 +153,14 @@ double poisson()
         }
     }
 
+    
+
     p0 = sqrt(p0 / fluid_cells);
     if (p0 < 0.0001)
     {
         p0 = 1.0;
     }
-
+    
     /* Red/Black SOR-iteration */
     int iter;
     double res = 0.0;
