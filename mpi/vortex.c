@@ -15,7 +15,6 @@
 #include "setup.h"
 #include "args.h"
 
-
 struct timespec timer;
 
 double get_time()
@@ -213,40 +212,11 @@ double poisson(int rank, int process_num)
     /* Red/Black SOR-iteration */
     int iter;
     double res = 0.0;
+    
     for (iter = 0; iter < itermax; iter++)
     {
-        for (int rb = 0; rb < 2; rb++)
-        {
-            for (int i = 1; i < imax + 1; i++)
-            {
-                for (int j = 1; j < jmax + 1; j++)
-                {
-                    if ((i + j) % 2 != rb)
-                    {
-                        continue;
-                    }
-                    if (flag[i][j] == (C_F | B_NSEW))
-                    {
-                        /* five point star for interior fluid cells */
-                        p[i][j] = (1.0 - omega) * p[i][j] -
-                                  beta_2 * ((p[i + 1][j] + p[i - 1][j]) * rdx2 + (p[i][j + 1] + p[i][j - 1]) * rdy2 - rhs[i][j]);
-                    }
-                    else if (flag[i][j] & C_F)
-                    {
-                        /* modified star near boundary */
-
-                        double eps_E = ((flag[i + 1][j] & C_F) ? 1.0 : 0.0);
-                        double eps_W = ((flag[i - 1][j] & C_F) ? 1.0 : 0.0);
-                        double eps_N = ((flag[i][j + 1] & C_F) ? 1.0 : 0.0);
-                        double eps_S = ((flag[i][j - 1] & C_F) ? 1.0 : 0.0);
-
-                        double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                        p[i][j] = (1.0 - omega) * p[i][j] -
-                                  beta_mod * ((eps_E * p[i + 1][j] + eps_W * p[i - 1][j]) * rdx2 + (eps_N * p[i][j + 1] + eps_S * p[i][j - 1]) * rdy2 - rhs[i][j]);
-                    }
-                }
-            }
-        }
+        five_point_star(rank, process_num, 0);
+        five_point_star(rank, process_num, 1);
 
         /* computation of residual */
         for (int i = 1; i < imax + 1; i++)
