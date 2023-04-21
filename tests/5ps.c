@@ -115,7 +115,7 @@ int main(int argc, char **argv)
             printf("\n");
         }
     }
-    for (int rb = 0; rb < 1; rb++)
+    for (int rb = 0; rb < 2; rb++)
     {
         if (rank == ROOT)
         {
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
-                        p_send[(write_ind(i, j))] = p_buff[(read_ind(i, j))];
+                        p_send[(write_ind(i, j))] = p_buff[(read_ind(i, j))] * rhs_buff[(write_ind(i, j))];
                     }
                 }
                 // Sets values at the end of the rows to what they already were
