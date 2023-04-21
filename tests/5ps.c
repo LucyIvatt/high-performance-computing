@@ -4,7 +4,7 @@
 
 #define read_ind(i, j) ((i) * (arr_size_y) + (j))
 
-#define write_ind(i, j) (((i) - 1) * (arr_size_y) + (j))
+#define write_ind(i, j) (((i)-1) * (arr_size_y) + (j))
 
 int ROOT = 0;
 
@@ -140,6 +140,27 @@ int main(int argc, char **argv)
                 MPI_Recv(p[start_loc], recv_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
 
+            if (ROW_REMAINDER > 0)
+            {
+                int start_loc = 1 + (ROWS_PER_PROCESS * (process_num - 1));
+                printf("remainder start %d\n", start_loc);
+
+                for (int i = start_loc; i < imax + 1; i++)
+                {
+                    for (int j = 1; j < jmax + 1; j++)
+                    {
+                        if ((i + j) % 2 != rb)
+                        {
+                            p[i][j] = p[i][j] * p[i][j];
+                        }
+                        else
+                        {
+                            p[i][j] = p[i][j] * rhs[i][j];
+                        }
+                    }
+                }
+            }
+
             printf("\nnew p array values\n");
             for (int i = 0; i < imax + 2; i++)
             {
@@ -162,26 +183,6 @@ int main(int argc, char **argv)
             MPI_Recv(p_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(rhs_buff, recv_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(flag_buff, recv_size, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            // printf("RECIEVED RHS\n");
-            // for (int i = 0; i < ROWS_PER_PROCESS + 2; i++)
-            // {
-            //     for (int j = 0; j < arr_size_y; j++)
-            //     {
-            //         printf("%.2f ", rhs_buff[read_ind(i, j)]);
-            //     }
-            //     printf("\n");
-            // }
-
-            // printf("RECIEVED FLAG\n");
-            // for (int i = 0; i < ROWS_PER_PROCESS + 2; i++)
-            // {
-            //     for (int j = 0; j < arr_size_y; j++)
-            //     {
-            //         printf("%x ", flag_buff[read_ind(i, j)]);
-            //     }
-            //     printf("\n");
-            // }
 
             int send_size = arr_size_y * ROWS_PER_PROCESS;
             double p_send[arr_size_y * ROWS_PER_PROCESS];
@@ -207,62 +208,6 @@ int main(int argc, char **argv)
             MPI_Send(&(p_send[0]), send_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
         }
     }
-
-    //     // Recives the new row and updates u
-    //     for (int r = 1; r < process_num; r++)
-    //     {
-    //         int start_loc = 1 + (ROWS_PER_PROCESS * (r - 1));
-    //         int recv_size = arr_size_y * ROWS_PER_PROCESS;
-    //         MPI_Recv(rhs[start_loc], recv_size, MPI_DOUBLE, r, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //     }
-
-    //     if (ROW_REMAINDER > 0)
-    //     {
-    //         int start_loc = 1 + (ROWS_PER_PROCESS * (process_num-1));
-    //         printf("remainder start %d\n", start_loc);
-
-    //         for (int i = start_loc; i < imax + 1; i++)
-    //         {
-    //             for (int j = 1; j < jmax + 1; j++)
-    //             {
-    //                 rhs[i][j] = f[i][j] * g[i][j];
-    //             }
-    //         }
-    //     }
-
-    //     // print u
-    //     printf("\nrhs array values\n");
-    //     for (int i = 0; i < imax + 2; i++)
-    //     {
-    //         for (int j = 0; j < jmax + 2; j++)
-    //         {
-    //             printf("%.2f ", rhs[i][j]);
-    //         }
-    //         printf("\n");
-    //     }
-    // }
-
-    //     int send_size = arr_size_y * ROWS_PER_PROCESS;
-    //     double rhs_buff_send[arr_size_y * ROWS_PER_PROCESS];
-
-    //     // Calculates the square of the numbers
-    //     for (int i = 0; i < ROWS_PER_PROCESS; i++)
-    //     {
-    //         for (int j = 1; j < arr_size_y - 1; j++)
-    //         {
-    //             if (flag_buff[test_ind(i, j)] & 0x0010)
-    //             {
-    //                 rhs_buff_send[test_ind(i, j)] = f_buff[test_ind(i + 1, j)] * g_buff[test_ind(i + 1, j)];
-    //             }
-    //         }
-
-    //         // Sets values at the end of the rows to what they already were
-    //         rhs_buff_send[test_ind(i, 0)] = rhs_buff_recv[test_ind(i + 1, 0)];
-    //         rhs_buff_send[test_ind(i, arr_size_y - 1)] = rhs_buff_recv[test_ind(i + 1, arr_size_y - 1)];
-    //     }
-
-    //     MPI_Send(&(rhs_buff_send[0]), send_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    // }
 
     MPI_Finalize();
     return 0;
