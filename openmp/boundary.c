@@ -100,7 +100,7 @@ void apply_boundary_conditions()
      */
     v[0][0] = 2 * vi - v[1][0];
 
-    #pragma omp parallel
+    #pragma omp parallel for
     for (int j = 1; j < jmax + 1; j++)
     {
         u[0][j] = ui;

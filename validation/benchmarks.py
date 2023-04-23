@@ -116,7 +116,36 @@ elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "ope
                             f.write(f"x={ver[1]} y={ver[3]}, {600}\n")
 
     else:
-        print("data.csv already exists, clear directory and retry.")
+        data_pairs = {}
+        for line in sys.stdin:
+            line = line.rstrip("\n")
+            split_path = line.split("/")
+            os.system(f"just viking_rsync_from '~/scratch/{sys.argv[2]}/{split_path[-2]}/{split_path[-1]}' '{path}/{split_path[-2]}.out'")
+
+            with open(f"{path}/{split_path[-2]}.out", "r") as slurm_log:
+                    ver = split_path[-2].split("_")
+
+                    for log_line in slurm_log:
+                        match = re.search(r'Total Time:\s+(\d+\.\d+)', log_line)
+                        if match:
+
+                            if sys.argv[2] == "openmp_cpu_experiment":
+                                data_pairs[f"cpus={ver[0]}"] = f"{match.group(1)}"
+                            else:
+                                data_pairs[f"x={ver[1]} y={ver[3]}"] = f"{match.group(1)}"
+                            break
+                    else:
+                        if sys.argv[2] == "openmp_cpu_experiment":
+                                data_pairs[f"cpus={ver[0]}"] = f"{600}"
+                        else:
+                            data_pairs[f"x={ver[1]} y={ver[3]}"] = f"{600}"
+            
+        with open(csv_path, "r+") as f:
+            lines = f.readlines()
+            lines = [line.strip("\n") + ", " + str(data_pairs[line.split(",")[0]] + "\n") for line in lines]
+            f.seek(0)
+            f.writelines(lines)
+        
 else:
     print("Incorrect script arguments, please try again.")
 
