@@ -1,6 +1,6 @@
 import os
 import sys
-import subprocess
+import platform
 import re
 
 START = 100
@@ -54,39 +54,68 @@ elif sys.argv[1] == "cuda" and sys.argv[2] == "checkpoints":
     if input("Are you sure you want to run cuda checkpoint experiment on Viking? ") != "yes":
         exit()
 
-    prefix = "just viking_run_cuda "
-    for x in range(START, END_SIZE+STEP, STEP):
-        y = int(x / 4)
-        folder_name = str(f"x_{x}_y_{y}_cuda_cp")
-        cmd = prefix + folder_name + " cuda_checkpoint_experiment" + f" -x {x} -y {y} -c"
+    if(sys.argv[3] == "default"):
+        prefix = "just viking_run_cuda "
+        for x in range(START, END_SIZE+STEP, STEP):
+            y = int(x / 4)
+            folder_name = str(f"x_{x}_y_{y}_cuda_cp")
+            cmd = prefix + folder_name + " cuda_checkpoint_experiment" + f" -x {x} -y {y} -c"
 
-        if sys.argv[3] == "print":
-            print(cmd)
-        else:
-            os.system(cmd)
+            if sys.argv[4] == "print":
+                print(cmd)
+            else:
+                os.system(cmd)
+    elif sys.argv[3] == "extra":
+        prefix = "just viking_run_cuda "
+        for x in range(4000, 16000+2000, 2000):
+            y = int(x / 4)
+            folder_name = str(f"x_{x}_y_{y}_cuda_cp")
+            cmd = prefix + folder_name + " cuda_checkpoint_experiment" + f" -x {x} -y {y} -c"
+
+            if sys.argv[4] == "print":
+                print(cmd)
+            else:
+                os.system(cmd)
+
 
 
 elif sys.argv[1] == "cuda" and sys.argv[2] == "benchmarks":
     if input("Are you sure you want to run cuda benchmarks on Viking? ") != "yes":
         exit()
 
-    prefix = "just viking_run_cuda "
-    for x in range(START, END_SIZE+STEP, STEP):
-        y = int(x / 4)
-        folder_name = str(f"x_{x}_y_{y}_cuda")
-        cmd = prefix + folder_name + " cuda_benchmarks" + f" -x {x} -y {y}"
-        
-        if sys.argv[3] == "print":
-            print(cmd)
-        else:
-            os.system(cmd)
+    if(sys.argv[3] == "default"):
+        prefix = "just viking_run_cuda "
+        for x in range(START, END_SIZE+STEP, STEP):
+            y = int(x / 4)
+            folder_name = str(f"x_{x}_y_{y}_cuda")
+            cmd = prefix + folder_name + " cuda_benchmarks" + f" -x {x} -y {y}"
+            
+            if sys.argv[4] == "print":
+                print(cmd)
+            else:
+                os.system(cmd)
+    elif(sys.argv[3] == "extra"):
+        prefix = "just viking_run_cuda "
+        for x in range(2000, 16000+2000, 2000):
+            y = int(x / 4)
+            folder_name = str(f"x_{x}_y_{y}_cuda")
+            cmd = prefix + folder_name + " cuda_benchmarks" + f" -x {x} -y {y}"
+            
+            if sys.argv[4] == "print":
+                print(cmd)
+            else:
+                os.system(cmd)
 
 elif sys.argv[1] == "mpi":
     pass
 
 elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "openmp_benchmarks", "openmp_cpu_experiment", "cuda_checkpoint_experiment", "cuda_benchmarks"]:
-    path = "/mnt/c/Users/lucea/Documents/Github Repos/HIPC-Assessment/validation/" + sys.argv[2]
-    csv_path = "/mnt/c/Users/lucea/Documents/Github Repos/HIPC-Assessment/validation/"+ sys.argv[2] + "_data.csv"
+    if platform.node() == "LUCE-PC":
+        path = "/mnt/d/Libraries/Documents/Github Repos/HIPC-Assessment/validation/" + sys.argv[2]
+    else:
+        path = "/mnt/c/Users/lucea/Documents/Github Repos/HIPC-Assessment/validation/" + sys.argv[2]
+    
+    csv_path = path + "_data.csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -139,12 +168,23 @@ elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "ope
                                 data_pairs[f"cpus={ver[0]}"] = f"{600}"
                         else:
                             data_pairs[f"x={ver[1]} y={ver[3]}"] = f"{600}"
-            
         with open(csv_path, "r+") as f:
             lines = f.readlines()
-            lines = [line.strip("\n") + ", " + str(data_pairs[line.split(",")[0]] + "\n") for line in lines]
+            new_lines = []
+            for line in lines:
+                if line.split(",")[0] in data_pairs.keys():
+                    new_lines.append(line.strip("\n") + ", " + str(data_pairs[line.split(",")[0]]) + "\n")
+                else:
+                    new_lines.append(line)
+
+            for key in data_pairs.keys():
+                for line in lines:
+                    if key in line:
+                        break
+                else:
+                    new_lines.append(f"{key}, {data_pairs[key]}\n")
             f.seek(0)
-            f.writelines(lines)
+            f.writelines(new_lines)
         
 else:
     print("Incorrect script arguments, please try again.")
