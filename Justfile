@@ -224,3 +224,8 @@ viking_cancel: && (viking_ssh "scancel -u " + YORK_USER)
 # Copy benchmark/experiment slurm logs from Viking
 viking_slurm_copy folder:
     sshpass -e ssh {{ YORK_USER }}@viking.york.ac.uk 'find ~/scratch/{{ folder }}/ -iname "slurm-*" -type f' | python3 validation/benchmarks.py slurm_copy {{ folder }}
+
+viking_clean_benchmarks:
+    just viking_ssh \
+        'cd ~/scratch/cuda_benchmarks && rm -rf * && cd ../manual_tests && rm -rf * && cd ../openmp_cpu_experiment && rm -rf * && cd ../cuda_checkpoint_experiment && rm -rf * && cd ../openmp_benchmarks && rm -rf * && cd ../original_benchmarks && rm -rf *'
+
