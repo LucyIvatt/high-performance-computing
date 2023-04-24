@@ -429,16 +429,23 @@ __global__ void star_computation_kernel(double *u, double *v, double *p, double 
 
 __global__ void residual_reduction_blocks_kernel(double *p, double *rhs, char *flag, double *global_reductions)
 {
+    // Shared memory to store the values of the threads to be reduced
     extern __shared__ double block_reductions[];
 
+    // Calculates the array index the thread represents
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    int b_tid = threadIdx.x * blockDim.y + threadIdx.y; // Block Thread ID
-    int t_per_b = blockDim.x * blockDim.y;            // Threads per block (rounded to nearest even number)
-    int bid = blockIdx.x * gridDim.y + blockIdx.y; // Block id (within grid)
+    // Thread ID within the block, used to access the block shared memory. 
+    int b_tid = threadIdx.x * blockDim.y + threadIdx.y; 
 
-    // If the thread is valid -->
+    // Number of threads per block
+    int t_per_b = blockDim.x * blockDim.y;
+
+    // The block ID within the grid, used to access the global reduction array.
+    int bid = blockIdx.x * gridDim.y + blockIdx.y;
+
+    // If the thread is valid then compute the value of the residual for this cell and store in shared memory
     if (i > 0 && i < imax + 1 && j > 0 && j < jmax + 1 && (flag[ind(i, j)] & C_F))
     {
         double eps_E = ((flag[ind(i + 1, j)] & C_F) ? 1.0 : 0.0);
@@ -458,12 +465,14 @@ __global__ void residual_reduction_blocks_kernel(double *p, double *rhs, char *f
     }
     else
     {
-        // otherwise sets the shared memory value to 0 (so that this will never be picked if compared)
+        // If the thread is not valid in the loop, then it sets the shared memory value to 0 so this will not affect the final outcome.
         block_reductions[b_tid] = 0;
     }
+
+    // Syncronises the threads to ensure all threads have loaded their value into shared memory
     __syncthreads();
 
-    // Uses sequental addressing for a reduction
+    // Uses sequental addressing to combine elements in shared memory to a single value (which is stored in index 0)
     for (unsigned int s = t_per_b / 2; s > 0; s /= 2)
     {
         if (b_tid < s)
@@ -473,13 +482,14 @@ __global__ void residual_reduction_blocks_kernel(double *p, double *rhs, char *f
         __syncthreads();
     }
 
-    // write result for this block to global mem
+    // Writes the output for this block to global memory.
     if (b_tid == 0)
         global_reductions[bid] = block_reductions[0];
 }
 
 __global__ void residual_reduction_global_kernel(double *global_reductions, double *residual, int num_blocks_x, int num_blocks_y, double *p0)
 {
+    // Shares m
     extern __shared__ double final_reductions[];
 
     int b_tid = threadIdx.x * blockDim.y + threadIdx.y;
