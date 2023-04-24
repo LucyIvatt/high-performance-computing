@@ -215,8 +215,8 @@ double poisson(int rank, int process_num)
     
     for (iter = 0; iter < itermax; iter++)
     {
-        five_point_star(rank, process_num, 0);
         five_point_star(rank, process_num, 1);
+        five_point_star(rank, process_num, 0);
 
         /* computation of residual */
         for (int i = 1; i < imax + 1; i++)

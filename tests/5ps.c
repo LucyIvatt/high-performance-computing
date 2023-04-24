@@ -151,10 +151,6 @@ int main(int argc, char **argv)
                     {
                         if ((i + j) % 2 != rb)
                         {
-                            p[i][j] = p[i][j] * p[i][j];
-                        }
-                        else
-                        {
                             p[i][j] = p[i][j] * rhs[i][j];
                         }
                     }
@@ -193,11 +189,10 @@ int main(int argc, char **argv)
                 {
                     if ((i + j) % 2 != rb)
                     {
-                        p_send[(write_ind(i, j))] = p_buff[(read_ind(i, j))] * p_buff[(read_ind(i, j))];
-                    }
-                    else
-                    {
                         p_send[(write_ind(i, j))] = p_buff[(read_ind(i, j))] * rhs_buff[(write_ind(i, j))];
+                    }
+                    else {
+                        p_send[(write_ind(i, j))] = p_buff[(read_ind(i, j))];
                     }
                 }
                 // Sets values at the end of the rows to what they already were

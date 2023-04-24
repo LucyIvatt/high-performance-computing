@@ -28,7 +28,7 @@ double get_time()
  */
 void compute_tentative_velocity()
 {
-    #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
     for (int i = 1; i < imax; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -56,9 +56,9 @@ void compute_tentative_velocity()
                 f[i][j] = u[i][j];
             }
         }
-    } 
+    }
 
-    #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax; j++)
@@ -88,15 +88,15 @@ void compute_tentative_velocity()
         }
     }
 
-    /* f & g at external boundaries */
-    #pragma omp parallel for
+/* f & g at external boundaries */
+#pragma omp parallel for
     for (int j = 1; j < jmax + 1; j++)
     {
         f[0][j] = u[0][j];
         f[imax][j] = u[imax][j];
     }
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 1; i < imax + 1; i++)
     {
         g[i][0] = v[i][0];
@@ -110,7 +110,7 @@ void compute_tentative_velocity()
  */
 void compute_rhs()
 {
-    #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -140,8 +140,9 @@ double poisson()
 
     double p0 = 0.0;
 
-    /* Calculate sum of squares */
-    #pragma omp parallel for collapse(2) reduction(+:p0)
+/* Calculate sum of squares */
+#pragma omp parallel for collapse(2) reduction(+ \
+                                               : p0)
     for (int i = 1; i < imax + 1; i++)
     {
         for (int j = 1; j < jmax + 1; j++)
@@ -153,14 +154,12 @@ double poisson()
         }
     }
 
-    
-
     p0 = sqrt(p0 / fluid_cells);
     if (p0 < 0.0001)
     {
         p0 = 1.0;
     }
-    
+
     /* Red/Black SOR-iteration */
     int iter;
     double res = 0.0;
@@ -169,7 +168,7 @@ double poisson()
     {
         for (int rb = 0; rb < 2; rb++)
         {
-            #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
             for (int i = 1; i < imax + 1; i++)
             {
                 for (int j = 1; j < jmax + 1; j++)
@@ -199,11 +198,25 @@ double poisson()
                     }
                 }
             }
+
+            // if (iter == 0)
+            // {
+            //     printf("\np array values\n");
+            //     for (int i = 0; i < imax + 2; i++)
+            //     {
+            //         for (int j = 0; j < jmax + 2; j++)
+            //         {
+            //             printf("%.2f ", p[i][j]);
+            //         }
+            //         printf("\n");
+            //     }
+            // }
         }
 
         /* computation of residual */
 
-        #pragma omp parallel for collapse(2) reduction(+:res)
+#pragma omp parallel for collapse(2) reduction(+ \
+                                               : res)
         for (int i = 1; i < imax + 1; i++)
         {
             for (int j = 1; j < jmax + 1; j++)
@@ -243,7 +256,7 @@ double poisson()
  */
 void update_velocity()
 {
-    #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
     for (int i = 1; i < imax - 2; i++)
     {
         for (int j = 1; j < jmax - 1; j++)
@@ -256,7 +269,7 @@ void update_velocity()
         }
     }
 
-    #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
     for (int i = 1; i < imax - 1; i++)
     {
         for (int j = 1; j < jmax - 2; j++)
@@ -282,7 +295,8 @@ void set_timestep_interval()
         double umax = 1.0e-10;
         double vmax = 1.0e-10;
 
-        #pragma omp parallel for collapse(2) reduction(max:umax)
+#pragma omp parallel for collapse(2) reduction(max \
+                                               : umax)
         for (int i = 0; i < imax + 2; i++)
         {
             for (int j = 1; j < jmax + 2; j++)
@@ -291,7 +305,8 @@ void set_timestep_interval()
             }
         }
 
-        #pragma omp parallel for collapse(2) reduction(max:vmax)
+#pragma omp parallel for collapse(2) reduction(max \
+                                               : vmax)
         for (int i = 1; i < imax + 2; i++)
         {
             for (int j = 0; j < jmax + 2; j++)

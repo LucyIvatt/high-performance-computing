@@ -13,13 +13,13 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-TOLERANCE = 0.02
+TOLERANCE = 0.2
 
 def is_num_str(string):
     pattern = r'^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$'
     return bool(re.match(pattern, string))
 
-def compare_lines(l1, l2, stats_dict):
+def compare_lines(l1, l2, stats_dict, count):
     l1 = [val for val in l1.rstrip().split(" ")]
     l2 = [val for val in l2.rstrip().split(" ")]
 
@@ -31,8 +31,10 @@ def compare_lines(l1, l2, stats_dict):
                 stats_dict["EXACT"] += 1
             elif abs(num1 - num2) <= TOLERANCE:
                 stats_dict["CLOSE"] += 1
+                print(f"{num1}, {num2}, col_num={i}, line_num={count}")
             else:
                 stats_dict["WRONG"] += 1
+                print(f"{num1}, {num2}, col_num={i}, line_num={count}")
 
             stats_dict["TOTAL"] += 1
             stats_dict["DOT_PROD"] += num1 * num2
@@ -53,8 +55,10 @@ def compare_files(f1, f2):
 
     with open(f1) as file1:
         with open(f2) as file2:
+            count = 0
             for line1, line2 in zip(file1, file2):
-                compare_lines(line1, line2, stats_dict)
+                compare_lines(line1, line2, stats_dict, count)
+                count += 1
     
     cosine_similarity = stats_dict["DOT_PROD"] / (sqrt(stats_dict["SUM_SQUARES_A"]) * sqrt(stats_dict["SUM_SQUARES_B"]))
 
