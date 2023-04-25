@@ -1,0 +1,75 @@
+
+Estimated aggregate size of event trace:                   1636MB
+Estimated requirements for largest trace buffer (max_buf): 1636MB
+Estimated memory requirements (SCOREP_TOTAL_MEMORY):       1676MB
+(hint: When tracing set SCOREP_TOTAL_MEMORY=1676MB to avoid intermediate flushes
+ or reduce requirements using USR regions filters.)
+
+flt     type    max_buf[B]     visits time[s] time[%] time/visit[us]  region
+         ALL 1,714,981,245 38,700,907  256.12   100.0           6.62  ALL
+         OMP 1,714,085,380 38,663,580  252.07    98.4           6.52  OMP
+         USR       597,384     24,891    0.09     0.0           3.49  USR
+         COM       298,440     12,435    3.95     1.5         317.75  COM
+      SCOREP            41          1    0.01     0.0        5553.31  SCOREP
+
+         OMP   704,480,000  8,288,000    4.24     1.7           0.51  ?$omp?parallel?@vortex.c:172
+         OMP   352,240,000  4,144,000    2.17     0.8           0.52  ?$omp?parallel?@vortex.c:206
+         OMP   198,912,000  8,288,000  121.07    47.3          14.61  ?$omp?for?@vortex.c:172
+         OMP   198,912,000  8,288,000   18.53     7.2           2.24  ?$omp?implicit?barrier?@vortex.c:201
+         OMP    99,456,000  4,144,000   88.91    34.7          21.45  ?$omp?for?@vortex.c:206
+         OMP    99,456,000  4,144,000    9.47     3.7           2.28  ?$omp?implicit?barrier?@vortex.c:229
+         OMP     3,524,100     41,460    0.01     0.0           0.32  ?$omp?parallel?@boundary.c:103
+         OMP     3,522,400     41,440    0.01     0.0           0.33  ?$omp?parallel?@vortex.c:31
+         OMP     3,522,400     41,440    0.01     0.0           0.34  ?$omp?parallel?@vortex.c:61
+         OMP     3,522,400     41,440    0.01     0.0           0.31  ?$omp?parallel?@vortex.c:92
+         OMP     3,522,400     41,440    0.01     0.0           0.23  ?$omp?parallel?@vortex.c:99
+         OMP     3,522,400     41,440    0.01     0.0           0.25  ?$omp?parallel?@vortex.c:113
+         OMP     3,522,400     41,440    0.01     0.0           0.29  ?$omp?parallel?@vortex.c:144
+         OMP     3,522,400     41,440    0.03     0.0           0.61  ?$omp?parallel?@vortex.c:246
+         OMP     3,522,400     41,440    0.01     0.0           0.33  ?$omp?parallel?@vortex.c:259
+         OMP     3,522,400     41,440    0.01     0.0           0.30  ?$omp?parallel?@vortex.c:285
+         OMP     3,522,400     41,440    0.01     0.0           0.30  ?$omp?parallel?@vortex.c:294
+         OMP       995,040     41,460    0.01     0.0           0.27  ?$omp?for?@boundary.c:103
+         OMP       995,040     41,460    0.09     0.0           2.20  ?$omp?implicit?barrier?@boundary.c:108
+         OMP       994,560     41,440    1.74     0.7          41.89  ?$omp?for?@vortex.c:31
+         OMP       994,560     41,440    0.23     0.1           5.46  ?$omp?implicit?barrier?@vortex.c:59
+         OMP       994,560     41,440    1.70     0.7          41.03  ?$omp?for?@vortex.c:61
+         OMP       994,560     41,440    0.40     0.2           9.69  ?$omp?implicit?barrier?@vortex.c:89
+         OMP       994,560     41,440    0.01     0.0           0.26  ?$omp?for?@vortex.c:92
+         OMP       994,560     41,440    0.09     0.0           2.15  ?$omp?implicit?barrier?@vortex.c:97
+         OMP       994,560     41,440    0.01     0.0           0.29  ?$omp?for?@vortex.c:99
+         OMP       994,560     41,440    0.08     0.0           2.03  ?$omp?implicit?barrier?@vortex.c:104
+         OMP       994,560     41,440    0.64     0.2          15.32  ?$omp?for?@vortex.c:113
+         OMP       994,560     41,440    0.09     0.0           2.14  ?$omp?implicit?barrier?@vortex.c:126
+         OMP       994,560     41,440    0.23     0.1           5.48  ?$omp?for?@vortex.c:144
+         OMP       994,560     41,440    0.08     0.0           1.95  ?$omp?implicit?barrier?@vortex.c:154
+         OMP       994,560     41,440    0.48     0.2          11.57  ?$omp?for?@vortex.c:246
+         OMP       994,560     41,440    0.09     0.0           2.18  ?$omp?implicit?barrier?@vortex.c:257
+         OMP       994,560     41,440    0.43     0.2          10.42  ?$omp?for?@vortex.c:259
+         OMP       994,560     41,440    0.09     0.0           2.07  ?$omp?implicit?barrier?@vortex.c:270
+         OMP       994,560     41,440    0.39     0.2           9.34  ?$omp?for?@vortex.c:285
+         OMP       994,560     41,440    0.09     0.0           2.09  ?$omp?implicit?barrier?@vortex.c:292
+         OMP       994,560     41,440    0.50     0.2          11.95  ?$omp?for?@vortex.c:294
+         OMP       994,560     41,440    0.09     0.0           2.09  ?$omp?implicit?barrier?@vortex.c:301
+         USR       596,832     24,868    0.00     0.0           0.20  get_time
+         COM        49,752      2,073    0.20     0.1          96.19  apply_boundary_conditions
+         COM        49,728      2,072    0.03     0.0          14.27  set_timestep_interval
+         COM        49,728      2,072    0.02     0.0          10.71  update_velocity
+         COM        49,728      2,072    3.64     1.4        1755.65  poisson
+         COM        49,728      2,072    0.01     0.0           5.46  compute_rhs
+         COM        49,728      2,072    0.05     0.0          21.81  compute_tentative_velocity
+         USR           168          7    0.00     0.0          36.49  free_2d_array
+         USR           144          6    0.00     0.0           8.27  alloc_2d_array
+      SCOREP            41          1    0.01     0.0        5553.31  vortex
+         USR            24          1    0.00     0.0           8.88  parse_args
+         USR            24          1    0.00     0.0           8.00  alloc_2d_char_array
+         COM            24          1    0.00     0.0        1901.80  problem_set_up
+         USR            24          1    0.00     0.0           3.36  free_arrays
+         USR            24          1    0.00     0.0           2.36  allocate_arrays
+         USR            24          1    0.00     0.0           0.48  setup
+         USR            24          1    0.00     0.0           1.09  set_defaults
+         USR            24          1    0.00     0.0           2.28  write_result
+         USR            24          1    0.08     0.0       81729.33  write_vtk
+         USR            24          1    0.00     0.0           0.64  set_default_base
+         USR            24          1    0.00     0.0           4.22  set_basename
+         COM            24          1    0.00     0.0        3947.94  main

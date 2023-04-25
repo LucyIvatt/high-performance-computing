@@ -44,7 +44,7 @@ elif sys.argv[1] == "openmp" and sys.argv[2] == "benchmarks":
     for x in range(START, END_SIZE+STEP, STEP):
         y = int(x / 4)
         folder_name = str(f"x_{x}_y_{y}_omp")
-        cmd = prefix + folder_name + " 20 openmp_benchmarks" + f" -x {x} -y {y}"
+        cmd = prefix + folder_name + " 40 openmp_benchmarks" + f" -x {x} -y {y}"
         if sys.argv[3] == "print":
             print(cmd)
         else:
@@ -109,7 +109,22 @@ elif sys.argv[1] == "cuda" and sys.argv[2] == "benchmarks":
 elif sys.argv[1] == "mpi":
     pass
 
-elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "openmp_benchmarks", "openmp_cpu_experiment", "cuda_checkpoint_experiment", "cuda_benchmarks"]:
+elif sys.argv[1] == "all" and sys.argv[2] == "default":
+    commands = []
+    for i in range(3):
+        commands.append(f"just viking_run original original_run_{i} default_benchmarks")
+        commands.append(f"just viking_run_cuda cuda_run_{i} default_benchmarks")
+        commands.append(f"just viking_run_openmp openmp_run_{i} 20 default_benchmarks")
+
+    for cmd in commands:   
+        if sys.argv[3] == "print":
+            print(cmd)
+        else:
+            os.system(cmd)
+
+
+
+elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "openmp_benchmarks", "openmp_cpu_experiment", "cuda_checkpoint_experiment", "cuda_benchmarks", "default_benchmarks"]:
     if platform.node() == "LUCE-PC":
         path = "/mnt/d/Libraries/Documents/Github Repos/HIPC-Assessment/validation/" + sys.argv[2]
     else:
@@ -135,12 +150,17 @@ elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "ope
 
                             if sys.argv[2] == "openmp_cpu_experiment":
                                 f.write(f"cpus={ver[0]}, {match.group(1)}\n")
+                            elif sys.argv[2] == "default_benchmarks":
+                                f.write(f"{split_path[-2]}, {match.group(1)}\n")
+
                             else:
                                 f.write(f"x={ver[1]} y={ver[3]}, {match.group(1)}\n")
                             break
                     else:
                         if sys.argv[2] == "openmp_cpu_experiment":
                                 f.write(f"cpus={ver[0]}, {600}\n")
+                        elif sys.argv[2] == "default_benchmarks":
+                                f.write(f"{split_path[-2]}, {600}\n")
                         else:
                             f.write(f"x={ver[1]} y={ver[3]}, {600}\n")
 
