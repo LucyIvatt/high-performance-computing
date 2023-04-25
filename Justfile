@@ -105,6 +105,10 @@ alias c := clean
 lab_rsync src dest *args="-r":
     sshpass -e rsync {{ args }} "{{ src }}" "{{ YORK_USER }}@{{ LAB_MACHINE_ADDR }}:{{ dest }}"
 
+[private]
+lab_rsync_from src dest args="-r":
+    sshpass -e rsync {{ args }} "{{ YORK_USER }}@{{ LAB_MACHINE_ADDR }}:{{ src }}" "{{ dest }}"
+
 # Call `ssh` for a lab machine
 lab_ssh *cmd="":
     sshpass -e ssh "{{ YORK_USER }}@{{ LAB_MACHINE_ADDR }}" '{{ cmd }}'
@@ -197,7 +201,7 @@ viking_run_mpi folder tasks="2" nodes="1" dest_folder="manual_tests" *args="":
     just \
         VORTEX_CMD="mpiexec -n {{ tasks }} ./vortex" \
         VIKING_NUM_TASKS={{ tasks }} \
-        VIKING_SLURM_ARGS='#SBATCH --nodes={{ nodes }}' \
+        VIKING_SLURM_ARGS='#SBATCH --nodes={{ nodes }} #SBATCH --mem-per-cpu=600mb' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=mpi/OpenMPI/4.1.1-GCC-11.2.0 \
         viking_run "mpi" "{{ folder }}" {{dest_folder}} {{ args }}
