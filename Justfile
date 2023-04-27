@@ -201,7 +201,7 @@ viking_run_mpi folder tasks="2" nodes="1" dest_folder="manual_tests" *args="":
     just \
         VORTEX_CMD="mpiexec -n {{ tasks }} ./vortex" \
         VIKING_NUM_TASKS={{ tasks }} \
-        VIKING_SLURM_ARGS='#SBATCH --nodes={{ nodes }} #SBATCH --mem-per-cpu=600mb' \
+        VIKING_SLURM_ARGS='--nodes={{ nodes }} --mem-per-cpu=600mb' \
         VIKING_JOB_TIME={{ VIKING_JOB_TIME }} \
         VIKING_MODULE=mpi/OpenMPI/4.1.1-GCC-11.2.0 \
         viking_run "mpi" "{{ folder }}" {{dest_folder}} {{ args }}
@@ -231,5 +231,5 @@ viking_slurm_copy folder:
 
 viking_clean_benchmarks:
     just viking_ssh \
-        'cd ~/scratch/cuda_benchmarks && rm -rf * && cd ../manual_tests && rm -rf * && cd ../openmp_cpu_experiment && rm -rf * && cd ../cuda_checkpoint_experiment && rm -rf * && cd ../openmp_benchmarks && rm -rf * && cd ../original_benchmarks && rm -rf *'
+        'cd ~/scratch/cuda_benchmarks && rm -rf * && cd ../manual_tests && rm -rf * && cd ../openmp_cpu_experiment && rm -rf * && cd ../cuda_checkpoint_experiment && rm -rf * && cd ../openmp_benchmarks && rm -rf * && cd ../original_benchmarks && rm -rf * && cd ../mpi_benchmarks && rm -rf *'
 
