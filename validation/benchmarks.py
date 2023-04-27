@@ -106,8 +106,21 @@ elif sys.argv[1] == "cuda" and sys.argv[2] == "benchmarks":
             else:
                 os.system(cmd)
 
-elif sys.argv[1] == "mpi":
-    pass
+elif sys.argv[1] == "mpi" and sys.argv[2] == "benchmarks":
+    if input("Are you sure you want to run cuda benchmarks on Viking? ") != "yes":
+        exit()
+
+    prefix = "just viking_run_mpi "
+    for x in range(START, 900+STEP, STEP):
+        y = int(x / 4)
+        folder_name = str(f"x_{x}_y_{y}_mpi")
+        cmd = prefix + folder_name + " 5 1 mpi_benchmarks" + f" -x {x} -y {y}"
+        
+        if sys.argv[3] == "print":
+            print(cmd)
+        else:
+            os.system(cmd)
+
 
 elif sys.argv[1] == "all" and sys.argv[2] == "default":
     commands = []
@@ -124,7 +137,7 @@ elif sys.argv[1] == "all" and sys.argv[2] == "default":
 
 
 
-elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "openmp_benchmarks", "openmp_cpu_experiment", "cuda_checkpoint_experiment", "cuda_benchmarks", "default_benchmarks"]:
+elif sys.argv[1] == "slurm_copy" and sys.argv[2] in ["original_benchmarks", "openmp_benchmarks", "openmp_cpu_experiment", "cuda_checkpoint_experiment", "cuda_benchmarks", "default_benchmarks", "mpi_benchmarks"]:
     if platform.node() == "LUCE-PC":
         path = "/mnt/d/Libraries/Documents/Github Repos/HIPC-Assessment/validation/" + sys.argv[2]
     else:
