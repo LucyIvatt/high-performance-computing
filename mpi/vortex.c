@@ -17,12 +17,6 @@
 
 struct timespec timer;
 
-double get_time()
-{
-    clock_gettime(CLOCK_MONOTONIC, &timer);
-    return (double)(timer.tv_sec + timer.tv_nsec / 1000000000.0);
-}
-
 /**
  * @brief Computation of tentative velocity field (f, g)
  *
@@ -343,7 +337,7 @@ void set_timestep_interval(int rank)
 int main(int argc, char *argv[])
 {
     /* Timer Initialisations */
-    double total_time = get_time();
+    double total_time = MPI_Wtime();
 
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
@@ -403,7 +397,7 @@ int main(int argc, char *argv[])
     {
         printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
         printf("Simulation complete.\n");
-        total_time = get_time() - total_time;
+        total_time = MPI_Wtime(); - total_time;
         fprintf(stderr, "Total Time: %lf\n", total_time);
 
         if (!no_output)
